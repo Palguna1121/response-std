@@ -46,3 +46,120 @@ func Response(params dto.ResponseParams) any {
 
 	return response
 }
+
+func Success(message string, data any) any {
+	return Response(dto.ResponseParams{
+		StatusCode: 200,
+		Message:    message,
+		Data:       data,
+	})
+}
+
+func Created(message string, data any) any {
+	return Response(dto.ResponseParams{
+		StatusCode: 201,
+		Message:    message,
+		Data:       data,
+	})
+}
+
+func Accepted(message string, data any) any {
+	return Response(dto.ResponseParams{
+		StatusCode: 202,
+		Message:    message,
+		Data:       data,
+	})
+}
+
+func NoContent(message string) any {
+	return Response(dto.ResponseParams{
+		StatusCode: 204,
+		Message:    message,
+	})
+}
+
+// Error returns a generic error response with the specified status code and message.
+// It is used for cases where the error does not fit into a specific category.
+
+func Error(code int, message string) any {
+	return Response(dto.ResponseParams{
+		StatusCode: code,
+		Message:    message,
+	})
+}
+
+func NotFound(message string) any {
+	return Response(dto.ResponseParams{
+		StatusCode: 404,
+		Message:    message,
+	})
+}
+
+func BadRequest(message string) any {
+	return Response(dto.ResponseParams{
+		StatusCode: 400,
+		Message:    message,
+	})
+}
+
+func Unauthorized(message string) any {
+	return Response(dto.ResponseParams{
+		StatusCode: 401,
+		Message:    message,
+	})
+}
+
+func Forbidden(message string) any {
+	return Response(dto.ResponseParams{
+		StatusCode: 403,
+		Message:    message,
+	})
+}
+
+func UnprocessableEntity(message string) any {
+	return Response(dto.ResponseParams{
+		StatusCode: 422,
+		Message:    message,
+	})
+}
+
+func Conflict(message string) any {
+	return Response(dto.ResponseParams{
+		StatusCode: 409,
+		Message:    message,
+	})
+}
+
+func Gone(message string) any {
+	return Response(dto.ResponseParams{
+		StatusCode: 410,
+		Message:    message,
+	})
+}
+
+func PreconditionFailed(message string) any {
+	return Response(dto.ResponseParams{
+		StatusCode: 412,
+		Message:    message,
+	})
+}
+func RequestTimeout(message string) any {
+	return Response(dto.ResponseParams{
+		StatusCode: 408,
+		Message:    message,
+	})
+}
+
+func TooManyRequests(message string) any {
+	return Response(dto.ResponseParams{
+		StatusCode: 429,
+		Message:    message,
+	})
+}
+
+func InternalServerError(message string) any {
+	return Response(dto.ResponseParams{
+		StatusCode: 500,
+		Message:    message,
+	})
+}

@@ -1,1 +1,6 @@
 .env
+go.mod
+go.sum
+# Binaries for programs and plugins
+*.exe
+*.exe~

@@ -38,8 +38,21 @@ To get started with this project:
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/your-username/gin-response-standard.git
-   cd gin-response-standard
+   git clone https://github.com/Palguna1121/Go-Gin-Response-Std.git
+   cd Go-Gin-Response-Std
+   ```
+
+2. Initialize Go modules:
+   ```bash
    go mod init your_app
+   ```
+
+3. Install dependencies:
+   ```bash
    go mod tidy
+   ```
+
+4. Setup your environment variables:
+   ```bash
+   cp .env.example .env
    ```

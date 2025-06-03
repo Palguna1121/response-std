@@ -19,6 +19,14 @@ func SetupRoutes(r *gin.Engine) {
 		auth.Use(middleware.AuthMiddleware())
 		{
 			auth.GET("/me", authController.Me)
+
+			// group and check role with middleware
+			// adminGroup := auth.Group("/admin")
+			// adminGroup.Use(middleware.RoleMiddleware("admin"))
+			// {
+			// 	adminGroup.GET("/users", adminController.GetUsers)
+			// 	adminGroup.POST("/users", adminController.CreateUser)
+			// }
 		}
 	}
 }

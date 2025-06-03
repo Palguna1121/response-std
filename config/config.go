@@ -13,6 +13,7 @@ type Config struct {
 	DB_USER     string `json:"db_user"`
 	DB_PASSWORD string `json:"db_password"`
 	DB_NAME     string `json:"db_name"`
+	JWT_SECRET  string `json:"jwt_secret"`
 }
 
 var ENV *Config

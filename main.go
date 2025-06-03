@@ -2,6 +2,7 @@ package main
 
 import (
 	"response-std/config"
+	"response-std/routes"
 
 	"github.com/gin-gonic/gin"
 )
@@ -10,15 +11,11 @@ func main() {
 	config.InitConfig()
 	config.LoadDB()
 
-	router := gin.Default()
-	api := router.Group("/api/v2")
-	{
-		api.GET("/ping", func(c *gin.Context) {
-			c.JSON(200, gin.H{
-				"message": "pong",
-			})
-		})
-	}
+	r := gin.Default()
+	routes.SetupRoutes(r)
 
-	router.Run(":" + config.ENV.APP_PORT) // listen and serve on port in .env file
+	err := r.Run(":" + config.ENV.APP_PORT)
+	if err != nil {
+		panic("Failed to run server: " + err.Error())
+	}
 }

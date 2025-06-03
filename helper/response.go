@@ -1,165 +1,99 @@
 package helper
 
 import (
-	"fmt"
-	"response-std/dto"
+	"github.com/gin-gonic/gin"
 )
 
-type ResponseWithData struct {
+type Response struct {
 	Code    int    `json:"code"`
 	Status  string `json:"status"`
 	Message string `json:"message"`
 	Data    any    `json:"data,omitempty"`
 }
 
-type ResponseWithoutData struct {
-	Code    int    `json:"code"`
-	Status  string `json:"status"`
-	Message string `json:"message"`
-}
-
-func Response(params dto.ResponseParams) any {
-	var response any
+func respond(c *gin.Context, statusCode int, message string, data any) {
 	var status string
-
-	if params.StatusCode >= 200 && params.StatusCode <= 299 {
+	if statusCode >= 200 && statusCode <= 299 {
 		status = "success"
 	} else {
 		status = "error"
 	}
 
-	if params.Data != nil {
-		response = &ResponseWithData{
-			Code:    params.StatusCode,
-			Status:  status,
-			Message: params.Message,
-			Data:    params.Data,
-		}
-	} else {
-		fmt.Printf("Error: %s\n", params.Message)
-		response = &ResponseWithoutData{
-			Code:    params.StatusCode,
-			Status:  status,
-			Message: params.Message,
-		}
+	response := Response{
+		Code:    statusCode,
+		Status:  status,
+		Message: message,
+		Data:    data,
 	}
 
-	return response
+	c.JSON(statusCode, response)
 }
 
-func Success(message string, data any) any {
-	return Response(dto.ResponseParams{
-		StatusCode: 200,
-		Message:    message,
-		Data:       data,
-	})
+func Success(c *gin.Context, message string, data any) {
+	respond(c, 200, message, data)
 }
 
-func Created(message string, data any) any {
-	return Response(dto.ResponseParams{
-		StatusCode: 201,
-		Message:    message,
-		Data:       data,
-	})
+func Created(c *gin.Context, message string, data any) {
+	respond(c, 201, message, data)
 }
 
-func Accepted(message string, data any) any {
-	return Response(dto.ResponseParams{
-		StatusCode: 202,
-		Message:    message,
-		Data:       data,
-	})
+func Accepted(c *gin.Context, message string, data any) {
+	respond(c, 202, message, data)
 }
 
-func NoContent(message string) any {
-	return Response(dto.ResponseParams{
-		StatusCode: 204,
-		Message:    message,
-	})
+func NoContent(c *gin.Context) {
+	c.Status(204)
 }
 
-// Error returns a generic error response with the specified status code and message.
-// It is used for cases where the error does not fit into a specific category.
-
-func Error(code int, message string) any {
-	return Response(dto.ResponseParams{
-		StatusCode: code,
-		Message:    message,
-	})
+// Error responses
+func Error(c *gin.Context, code int, message string) {
+	respond(c, code, message, nil)
 }
 
-func NotFound(message string) any {
-	return Response(dto.ResponseParams{
-		StatusCode: 404,
-		Message:    message,
-	})
+func BadRequest(c *gin.Context, message string) {
+	Error(c, 400, message)
 }
 
-func BadRequest(message string) any {
-	return Response(dto.ResponseParams{
-		StatusCode: 400,
-		Message:    message,
-	})
+func Unauthorized(c *gin.Context, message string) {
+	Error(c, 401, message)
 }
 
-func Unauthorized(message string) any {
-	return Response(dto.ResponseParams{
-		StatusCode: 401,
-		Message:    message,
-	})
+func Forbidden(c *gin.Context, message string) {
+	Error(c, 403, message)
 }
 
-func Forbidden(message string) any {
-	return Response(dto.ResponseParams{
-		StatusCode: 403,
-		Message:    message,
-	})
+func NotFound(c *gin.Context, message string) {
+	Error(c, 404, message)
 }
 
-func UnprocessableEntity(message string) any {
-	return Response(dto.ResponseParams{
-		StatusCode: 422,
-		Message:    message,
-	})
+func UnprocessableEntity(c *gin.Context, message string) {
+	Error(c, 422, message)
 }
 
-func Conflict(message string) any {
-	return Response(dto.ResponseParams{
-		StatusCode: 409,
-		Message:    message,
-	})
+func Conflict(c *gin.Context, message string) {
+	Error(c, 409, message)
 }
 
-func Gone(message string) any {
-	return Response(dto.ResponseParams{
-		StatusCode: 410,
-		Message:    message,
-	})
+func InternalServerError(c *gin.Context, message string) {
+	Error(c, 500, message)
 }
 
-func PreconditionFailed(message string) any {
-	return Response(dto.ResponseParams{
-		StatusCode: 412,
-		Message:    message,
-	})
-}
-func RequestTimeout(message string) any {
-	return Response(dto.ResponseParams{
-		StatusCode: 408,
-		Message:    message,
-	})
+func ServiceUnavailable(c *gin.Context, message string) {
+	Error(c, 503, message)
 }
 
-func TooManyRequests(message string) any {
-	return Response(dto.ResponseParams{
-		StatusCode: 429,
-		Message:    message,
-	})
+func TooManyRequests(c *gin.Context, message string) {
+	Error(c, 429, message)
 }
 
-func InternalServerError(message string) any {
-	return Response(dto.ResponseParams{
-		StatusCode: 500,
-		Message:    message,
-	})
+func Gone(c *gin.Context, message string) {
+	Error(c, 410, message)
+}
+
+func PreconditionFailed(c *gin.Context, message string) {
+	Error(c, 412, message)
+}
+
+func RequestTimeout(c *gin.Context, message string) {
+	Error(c, 408, message)
 }

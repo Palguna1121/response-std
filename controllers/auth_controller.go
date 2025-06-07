@@ -1,18 +1,19 @@
 package controllers
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
+	"log"
+	"math/rand"
 	"strings"
 	"time"
 
-	"response-std/config"
 	"response-std/helper"
 	"response-std/models"
-	"response-std/utils"
 
 	"github.com/gin-gonic/gin"
-	"github.com/golang-jwt/jwt/v5"
-	"golang.org/x/crypto/bcrypt"
+	"gorm.io/gorm"
 )
 
 type AuthController struct{}
@@ -21,90 +22,167 @@ func NewAuthController() *AuthController {
 	return &AuthController{}
 }
 
-// Secret untuk JWT
-func getJwtSecret() []byte {
-	return []byte(config.ENV.JWT_SECRET)
-}
+// ---------------------------
+// LOGIN
+// ---------------------------
+func (a *AuthController) Login(db *gorm.DB) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		var input struct {
+			Email    string `json:"email" binding:"required,email"`
+			Password string `json:"password" binding:"required"`
+		}
 
-// Format token seperti Laravel Sanctum: "id|jwt"
-func generateToken(userID uint) (string, error) {
-	expirationTime := time.Now().Add(7 * 24 * time.Hour)
-	claims := jwt.MapClaims{
-		"sub": userID,
-		"exp": expirationTime.Unix(),
-		"iat": time.Now().Unix(),
-	}
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	jwtStr, err := token.SignedString(getJwtSecret())
-	if err != nil {
-		return "", err
-	}
-	return formatSanctumToken(userID, jwtStr), nil
-}
+		if err := c.ShouldBindJSON(&input); err != nil {
+			helper.UnprocessableEntity(c, "Invalid credentials")
+			return
+		}
 
-func formatSanctumToken(userID uint, jwt string) string {
-	return fmt.Sprintf("%d|%s", userID, jwt)
-}
+		var user models.User
+		err := db.Preload("Roles.Permissions").Preload("Permissions").
+			Where("email = ?", input.Email).First(&user).Error
 
-func parseSanctumToken(rawToken string) (*jwt.Token, uint, error) {
-	parts := strings.Split(rawToken, "|")
-	if len(parts) != 2 {
-		return nil, 0, fmt.Errorf("invalid token format")
-	}
-	userID := parts[0]
-	jwtToken := parts[1]
-	token, err := jwt.Parse(jwtToken, func(token *jwt.Token) (interface{}, error) {
-		return getJwtSecret(), nil
-	})
-	if err != nil || !token.Valid {
-		return nil, 0, err
-	}
-	var uid uint
-	fmt.Sscanf(userID, "%d", &uid)
-	return token, uid, nil
-}
+		if err != nil {
+			helper.NotFound(c, "User not found")
+			return
+		}
 
-func (a *AuthController) Login(c *gin.Context) {
-	type LoginInput struct {
-		Email    string `json:"email" binding:"required,email"`
-		Password string `json:"password" binding:"required"`
-	}
-	var input LoginInput
-	if err := c.ShouldBindJSON(&input); err != nil {
-		helper.BadRequest(c, "Invalid input")
-		return
-	}
+		if !user.CheckPassword(input.Password) {
+			helper.UnprocessableEntity(c, "Invalid credentials")
+			return
+		}
 
-	var user models.User
-	db := config.DB
-	if err := db.Where("email = ?", input.Email).First(&user).Error; err != nil {
-		helper.NotFound(c, "Email not found")
-		return
-	}
+		// Generate token
+		plainToken := generateSanctumToken()
+		//old
+		hashedToken := sha256.Sum256([]byte(plainToken))
+		// Encode hashed token ke hex
+		hashedTokenHex := hex.EncodeToString(hashedToken[:])
 
-	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(input.Password)); err != nil {
-		helper.BadRequest(c, "Invalid password")
-		return
-	}
+		// Set expires at (1 hari dari sekarang)
+		expiresAt := time.Now().Add(24 * time.Hour)
 
-	token, err := generateToken(user.ID)
-	if err != nil {
-		helper.InternalServerError(c, "Failed to generate token")
-		return
-	}
+		token := models.PersonalAccessToken{
+			TokenableID:   user.ID,
+			TokenableType: "App\\Models\\User",
+			Name:          "go-client",
+			Token:         hashedTokenHex,
+			Abilities:     helper.StringPtr("['*']"),
+			ExpiresAt:     &expiresAt,
+			CreatedAt:     time.Now(),
+			UpdatedAt:     time.Now(),
+		}
+		// Sebelum create
+		// Use transaction to ensure data consistency
+		err = db.Transaction(func(tx *gorm.DB) error {
+			if err := tx.Create(&token).Error; err != nil {
+				return err
+			}
+			return nil
+		})
 
-	data := gin.H{
-		"token": token,
-		"user": gin.H{
-			"id":    user.ID,
+		if err != nil {
+			log.Printf("Error creating token: %v", err)
+			helper.InternalServerError(c, "Failed to create token")
+			return
+		}
+
+		// Verify token ID was generated
+		if token.ID == 0 {
+			helper.InternalServerError(c, "Failed to get token")
+			return
+		}
+
+		accessToken := fmt.Sprintf("%d|%s", token.ID, plainToken)
+
+		// Format response seperti Laravel
+		response := gin.H{
 			"name":  user.Name,
 			"email": user.Email,
-		},
-	}
+			"token": accessToken,
+			"role":  getPrimaryRole(user.Roles),
+			"session": gin.H{
+				"expires_at": expiresAt.Format(time.RFC3339Nano),
+				"expired_in": 24,
+			},
+		}
 
-	helper.Success(c, "Login successful", data)
+		helper.Success(c, "Login successful. Welcome Bro 🔥✌️", response)
+	}
 }
 
+// ---------------------------
+// LOGOUT
+// ---------------------------
+func (a *AuthController) Logout(db *gorm.DB) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		authHeader := c.GetHeader("Authorization")
+		if !strings.HasPrefix(authHeader, "Bearer ") {
+			helper.Unauthorized(c, "Token tidak valid")
+			return
+		}
+
+		parts := strings.SplitN(strings.TrimPrefix(authHeader, "Bearer "), "|", 2)
+		if len(parts) != 2 {
+			helper.Unauthorized(c, "Token tidak lengkap")
+			return
+		}
+
+		tokenID, rawToken := parts[0], parts[1]
+		hashed := sha256.Sum256([]byte(rawToken))
+		hashedHex := hex.EncodeToString(hashed[:])
+
+		var token models.PersonalAccessToken
+		err := db.Where("id = ? AND token = ?", tokenID, hashedHex).First(&token).Error
+		if err != nil {
+			helper.Unauthorized(c, "Token tidak dikenali")
+			return
+		}
+
+		db.Delete(&token)
+		helper.Success(c, "Logout berhasil", nil)
+	}
+}
+
+// ---------------------------
+// REGISTER
+// ---------------------------
+func (a *AuthController) Register(db *gorm.DB) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		var input struct {
+			Name     string `json:"name" binding:"required"`
+			Email    string `json:"email" binding:"required,email"`
+			Password string `json:"password" binding:"required"`
+		}
+
+		if err := c.ShouldBindJSON(&input); err != nil {
+			helper.BadRequest(c, "Data tidak valid")
+			return
+		}
+
+		var count int64
+		db.Model(&models.User{}).Where("email = ?", input.Email).Count(&count)
+		if count > 0 {
+			helper.BadRequest(c, "Email sudah digunakan")
+			return
+		}
+
+		user := models.User{
+			Name:     input.Name,
+			Email:    input.Email,
+			Password: input.Password,
+		}
+		if err := db.Create(&user).Error; err != nil {
+			helper.UnprocessableEntity(c, "Gagal mendaftar: "+err.Error())
+			return
+		}
+
+		helper.Created(c, "Register berhasil", nil)
+	}
+}
+
+// ---------------------------
+// PROFILE / ME
+// ---------------------------
 func (a *AuthController) Me(c *gin.Context) {
 	user, exists := c.Get("user")
 	if !exists {
@@ -112,57 +190,36 @@ func (a *AuthController) Me(c *gin.Context) {
 		return
 	}
 
+	u, exists := user.(models.User)
+	if !exists {
+		helper.NotFound(c, "User not found")
+		return
+	}
+
 	data := gin.H{
-		"id":    user.(models.User).ID,
-		"name":  user.(models.User).Name,
-		"email": user.(models.User).Email,
+		"id":    u.ID,
+		"name":  u.Name,
+		"email": u.Email,
 	}
 
 	helper.Success(c, "User fetched!", data)
 }
 
-func (a *AuthController) Register(c *gin.Context) {
-	type RegisterInput struct {
-		Name     string `json:"name" binding:"required"`
-		Email    string `json:"email" binding:"required,email"`
-		Password string `json:"password" binding:"required,gte=8"`
+// ---------------------------
+// UTILITIES
+// ---------------------------
+func getPrimaryRole(roles []models.Role) string {
+	if len(roles) > 0 {
+		return roles[0].Name
 	}
-	var input RegisterInput
-	if err := c.ShouldBindJSON(&input); err != nil {
-		helper.BadRequest(c, "Invalid input")
-		return
-	}
+	return ""
+}
 
-	var user models.User
-	db := config.DB
-	if err := db.Where("email = ?", input.Email).First(&user).Error; err == nil {
-		helper.BadRequest(c, "Email already taken")
-		return
+func generateSanctumToken() string {
+	const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+	b := make([]byte, 48) // 48 karakter seperti Sanctum default
+	for i := range b {
+		b[i] = charset[rand.Intn(len(charset))]
 	}
-
-	hashedPassword, err := utils.HashPassword(input.Password)
-	if err != nil {
-		helper.InternalServerError(c, "Failed to hash password")
-		return
-	}
-
-	user = models.User{
-		Name:     input.Name,
-		Email:    input.Email,
-		Password: string(hashedPassword),
-		RoleID:   3, // participant
-	}
-
-	if err := db.Create(&user).Error; err != nil {
-		helper.InternalServerError(c, "Failed to create user")
-		return
-	}
-
-	data := gin.H{
-		"id":    user.ID,
-		"name":  user.Name,
-		"email": user.Email,
-	}
-
-	helper.Created(c, "User created!", data)
+	return string(b)
 }

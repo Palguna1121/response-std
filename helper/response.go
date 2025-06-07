@@ -5,8 +5,8 @@ import (
 )
 
 type Response struct {
-	Code    int    `json:"code"`
 	Status  string `json:"status"`
+	Code    int    `json:"code"`
 	Message string `json:"message"`
 	Data    any    `json:"data,omitempty"`
 }
@@ -20,8 +20,8 @@ func respond(c *gin.Context, statusCode int, message string, data any) {
 	}
 
 	response := Response{
-		Code:    statusCode,
 		Status:  status,
+		Code:    statusCode,
 		Message: message,
 		Data:    data,
 	}

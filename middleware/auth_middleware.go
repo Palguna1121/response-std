@@ -1,49 +1,55 @@
 package middleware
 
 import (
-	"response-std/config"
+	"crypto/sha256"
+	"encoding/hex"
+	"strings"
+	"time"
+
 	"response-std/helper"
 	"response-std/models"
-	"strings"
 
 	"github.com/gin-gonic/gin"
-	"github.com/golang-jwt/jwt/v5"
+	"gorm.io/gorm"
 )
 
-func AuthMiddleware() gin.HandlerFunc {
+func AuthMiddleware(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		authHeader := c.GetHeader("Authorization")
-		if authHeader == "" || !strings.HasPrefix(authHeader, "Bearer ") {
-			helper.Unauthorized(c, "Authorization header is missing or invalid")
+		tokenHeader := c.GetHeader("Authorization")
+		if !strings.HasPrefix(tokenHeader, "Bearer ") {
+			helper.Unauthorized(c, "Token tidak valid")
 			c.Abort()
 			return
 		}
 
-		rawToken := strings.TrimPrefix(authHeader, "Bearer ")
-		parts := strings.Split(rawToken, "|")
+		parts := strings.SplitN(strings.TrimPrefix(tokenHeader, "Bearer "), "|", 2)
 		if len(parts) != 2 {
-			helper.Unauthorized(c, "Invalid token format")
+			helper.Unauthorized(c, "Token tidak lengkap")
 			c.Abort()
 			return
 		}
 
-		userID := parts[0]
-		jwtToken := parts[1]
+		id := parts[0]
+		plain := parts[1]
+		hashed := sha256.Sum256([]byte(plain))
+		hashedHex := hex.EncodeToString(hashed[:])
 
-		token, err := jwt.Parse(jwtToken, func(token *jwt.Token) (interface{}, error) {
-			return config.ENV.JWT_SECRET, nil // Menggunakan secret dari config
-		})
+		var token models.PersonalAccessToken
+		if err := db.Where("id = ? AND token = ?", id, hashedHex).First(&token).Error; err != nil {
+			helper.Unauthorized(c, "Token tidak dikenali")
+			c.Abort()
+			return
+		}
 
-		if err != nil || !token.Valid {
-			helper.Unauthorized(c, "Invalid token")
+		if token.ExpiresAt != nil && token.ExpiresAt.Before(time.Now()) {
+			helper.Unauthorized(c, "Token expired")
 			c.Abort()
 			return
 		}
 
 		var user models.User
-		db := config.DB
-		if err := db.First(&user, userID).Error; err != nil {
-			helper.Unauthorized(c, "User not found")
+		if err := db.Preload("Roles.Permissions").Preload("Permissions").First(&user, token.TokenableID).Error; err != nil {
+			helper.InternalServerError(c, "User tidak ditemukan")
 			c.Abort()
 			return
 		}
@@ -51,4 +57,39 @@ func AuthMiddleware() gin.HandlerFunc {
 		c.Set("user", user)
 		c.Next()
 	}
+}
+
+func RoleMiddleware(roles []string) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		user, exists := c.Get("user")
+		if !exists {
+			helper.Unauthorized(c, "Unauthenticated")
+			c.Abort()
+			return
+		}
+
+		u := user.(models.User)
+		if !hasRole(u.Roles, roles) {
+			helper.Forbidden(c, "Forbidden")
+			c.Abort()
+			return
+		}
+
+		c.Next()
+	}
+}
+
+func hasRole(userRoles []models.Role, roles []string) bool {
+	roleMap := make(map[string]bool)
+	for _, r := range userRoles {
+		roleMap[r.Name] = true
+	}
+
+	for _, r := range roles {
+		if !roleMap[r] {
+			return false
+		}
+	}
+
+	return true
 }

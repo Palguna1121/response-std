@@ -3,6 +3,8 @@ package middleware
 import (
 	"crypto/sha256"
 	"encoding/hex"
+	"fmt"
+	"strconv"
 	"strings"
 	"time"
 
@@ -13,64 +15,112 @@ import (
 	"gorm.io/gorm"
 )
 
+// ---------------------------
+// AUTH MIDDLEWARE (Token Verification)
+// ---------------------------
 func AuthMiddleware(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		tokenHeader := c.GetHeader("Authorization")
-		if !strings.HasPrefix(tokenHeader, "Bearer ") {
-			helper.Unauthorized(c, "Token tidak valid")
+		authHeader := c.GetHeader("Authorization")
+
+		// Check if Authorization header exists and has Bearer token
+		if authHeader == "" || !strings.HasPrefix(authHeader, "Bearer ") {
+			helper.Unauthorized(c, "Authorization header required")
 			c.Abort()
 			return
 		}
 
-		parts := strings.SplitN(strings.TrimPrefix(tokenHeader, "Bearer "), "|", 2)
+		// Extract token from header
+		tokenString := strings.TrimPrefix(authHeader, "Bearer ")
+
+		// Parse token format: ID|plain_token
+		parts := strings.SplitN(tokenString, "|", 2)
 		if len(parts) != 2 {
-			helper.Unauthorized(c, "Token tidak lengkap")
+			helper.Unauthorized(c, "Invalid token format")
 			c.Abort()
 			return
 		}
 
-		id := parts[0]
-		plain := parts[1]
-		hashed := sha256.Sum256([]byte(plain))
-		hashedHex := hex.EncodeToString(hashed[:])
+		tokenID, plainToken := parts[0], parts[1]
 
+		// Convert token ID to integer
+		id, err := strconv.Atoi(tokenID)
+		if err != nil {
+			helper.Unauthorized(c, "Invalid token ID")
+			c.Abort()
+			return
+		}
+
+		// Hash the plain token to compare with stored hash
+		hashedToken := sha256.Sum256([]byte(plainToken))
+		hashedTokenHex := hex.EncodeToString(hashedToken[:])
+
+		// Find token in database
 		var token models.PersonalAccessToken
-		if err := db.Where("id = ? AND token = ?", id, hashedHex).First(&token).Error; err != nil {
-			helper.Unauthorized(c, "Token tidak dikenali")
+		err = db.Where("id = ? AND token = ?", id, hashedTokenHex).First(&token).Error
+		if err != nil {
+			helper.Unauthorized(c, "Invalid or expired token")
 			c.Abort()
 			return
 		}
 
+		// Check if token is expired
 		if token.ExpiresAt != nil && token.ExpiresAt.Before(time.Now()) {
-			helper.Unauthorized(c, "Token expired")
+			// Delete expired token
+			db.Delete(&token)
+			helper.Unauthorized(c, "Token has expired")
 			c.Abort()
 			return
 		}
 
+		// Get user associated with the token
 		var user models.User
-		if err := db.Preload("Roles.Permissions").Preload("Permissions").First(&user, token.TokenableID).Error; err != nil {
-			helper.InternalServerError(c, "User tidak ditemukan")
+		err = db.Preload("Roles.Permissions").Preload("Permissions").
+			Where("id = ?", token.TokenableID).First(&user).Error
+		if err != nil {
+			helper.Unauthorized(c, "User not found")
 			c.Abort()
 			return
 		}
 
+		// Store user in context for use in handlers
 		c.Set("user", user)
+		c.Set("token", token)
+
 		c.Next()
 	}
 }
 
-func RoleMiddleware(roles []string) gin.HandlerFunc {
+// ---------------------------
+// ROLE MIDDLEWARE (Role-based Access Control)
+// ---------------------------
+func RoleMiddleware(requiredRole string) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		user, exists := c.Get("user")
+		// Get user from context (set by AuthMiddleware)
+		userInterface, exists := c.Get("user")
 		if !exists {
-			helper.Unauthorized(c, "Unauthenticated")
+			helper.Unauthorized(c, "User not authenticated")
 			c.Abort()
 			return
 		}
 
-		u := user.(models.User)
-		if !hasRole(u.Roles, roles) {
-			helper.Forbidden(c, "Forbidden")
+		user, ok := userInterface.(models.User)
+		if !ok {
+			helper.Unauthorized(c, "Invalid user data")
+			c.Abort()
+			return
+		}
+
+		// Check if user has the required role
+		hasRole := false
+		for _, role := range user.Roles {
+			if role.Name == requiredRole {
+				hasRole = true
+				break
+			}
+		}
+
+		if !hasRole {
+			helper.Forbidden(c, fmt.Sprintf("Access denied. Required role: %s", requiredRole))
 			c.Abort()
 			return
 		}
@@ -79,17 +129,56 @@ func RoleMiddleware(roles []string) gin.HandlerFunc {
 	}
 }
 
-func hasRole(userRoles []models.Role, roles []string) bool {
-	roleMap := make(map[string]bool)
-	for _, r := range userRoles {
-		roleMap[r.Name] = true
-	}
-
-	for _, r := range roles {
-		if !roleMap[r] {
-			return false
+// ---------------------------
+// PERMISSION MIDDLEWARE (Permission-based Access Control)
+// ---------------------------
+func PermissionMiddleware(requiredPermission string) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		// Get user from context
+		userInterface, exists := c.Get("user")
+		if !exists {
+			helper.Unauthorized(c, "User not authenticated")
+			c.Abort()
+			return
 		}
-	}
 
-	return true
+		user, ok := userInterface.(models.User)
+		if !ok {
+			helper.Unauthorized(c, "Invalid user data")
+			c.Abort()
+			return
+		}
+
+		// Check direct permissions
+		hasPermission := false
+		for _, permission := range user.Permissions {
+			if permission.Name == requiredPermission {
+				hasPermission = true
+				break
+			}
+		}
+
+		// If not found in direct permissions, check role permissions
+		if !hasPermission {
+			for _, role := range user.Roles {
+				for _, permission := range role.Permissions {
+					if permission.Name == requiredPermission {
+						hasPermission = true
+						break
+					}
+				}
+				if hasPermission {
+					break
+				}
+			}
+		}
+
+		if !hasPermission {
+			helper.Forbidden(c, fmt.Sprintf("Access denied. Required permission: %s", requiredPermission))
+			c.Abort()
+			return
+		}
+
+		c.Next()
+	}
 }

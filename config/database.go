@@ -27,7 +27,7 @@ func LoadDB() {
 func MigrateDB() {
 	if err := DB.AutoMigrate(
 		&models.User{},
-		&models.Role{},
+		&models.Roles{},
 	); err != nil {
 		log.Fatalf("failed to migrate database: %v", err)
 	}

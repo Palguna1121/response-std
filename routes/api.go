@@ -11,49 +11,22 @@ import (
 )
 
 func SetupRoutes(r *gin.Engine) {
+	// Initialize controllers
 	authController := controllers.NewAuthController()
 
-	// Initialize logger
+	// Initialize services
 	logger := services.NewLogger(config.ENV.LogLevel, config.ENV.Environment)
-
-	// Initialize API client
 	apiClient := services.NewAPIClient(config.ENV, logger)
-
-	// Initialize handlers
 	apiHandler := handlers.NewAPIHandler(apiClient, logger)
 
+	// Global middlewares
 	r.Use(gin.Recovery())
 	r.Use(middleware.CORSMiddleware())
 	r.Use(middleware.LoggingMiddleware(logger))
 	r.Use(middleware.ErrorHandlingMiddleware(logger))
 	r.Use(middleware.RateLimitMiddleware())
 
-	//routes
-	api := r.Group("/api/v1")
-	{
-		// Health check
-		api.GET("/health", apiHandler.HealthCheck)
-
-		// Execute API request
-		api.POST("/login", authController.Login(config.DB))
-		api.POST("/register", authController.Register(config.DB))
-
-		auth := api.Group("/")
-		auth.Use(middleware.AuthMiddleware(config.DB))
-		{
-			auth.GET("/me", authController.Me)
-
-			// group and check role with middleware
-			// adminGroup := auth.Group("/admin")
-			// adminGroup.Use(middleware.RoleMiddleware("admin"))
-			// {
-			// 	adminGroup.GET("/users", adminController.GetUsers)
-			// 	adminGroup.POST("/users", adminController.CreateUser)
-			// }
-			auth.POST("/logout", authController.Logout(config.DB))
-		}
-	}
-
+	// Root endpoint
 	r.GET("/", func(c *gin.Context) {
 		c.JSON(200, gin.H{
 			"service": "API Service Starter",
@@ -62,4 +35,41 @@ func SetupRoutes(r *gin.Engine) {
 			"docs":    "/api/v1/health",
 		})
 	})
+
+	// API routes
+	api := r.Group("/api/v1")
+	{
+		// Health check
+		api.GET("/health", apiHandler.HealthCheck)
+
+		// Authentication routes (public)
+		auth := api.Group("/auth")
+		{
+			auth.POST("/login", authController.Login(config.DB))
+			auth.POST("/register", authController.Register(config.DB))
+		}
+
+		// Protected routes (require authentication)
+		protected := api.Group("/")
+		protected.Use(middleware.AuthMiddleware(config.DB))
+		{
+			// Auth endpoints
+			protected.POST("/auth/logout", authController.Logout(config.DB))
+			protected.POST("/auth/refresh", authController.RefreshToken(config.DB))
+			protected.GET("/auth/me", authController.Me)
+
+			// Admin routes (require admin role)
+			admin := protected.Group("/admin")
+			admin.Use(middleware.RoleMiddleware("admin"))
+			{
+				// Example admin routes
+				// admin.GET("/dashboard", adminController.Dashboard)
+				// admin.GET("/users", adminController.GetAllUsers)
+				// admin.POST("/users", adminController.CreateUser)
+				// admin.GET("/users/:id", adminController.GetUserByID)
+				// admin.PUT("/users/:id", adminController.UpdateUser)
+				// admin.DELETE("/users/:id", adminController.DeleteUser)
+			}
+		}
+	}
 }

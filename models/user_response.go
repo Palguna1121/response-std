@@ -10,7 +10,7 @@ type UserResponse struct {
 	EmailVerifiedAt *time.Time `json:"email_verified_at,omitempty"`
 	CreatedAt       time.Time  `json:"created_at,omitempty"`
 	UpdatedAt       time.Time  `json:"updated_at,omitempty"`
-	Roles           []Role     `json:"roles,omitempty"`
+	Roles           []Roles     `json:"roles,omitempty"`
 }
 
 func (u *User) ToResponse() UserResponse {

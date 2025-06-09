@@ -18,7 +18,7 @@ type User struct {
 	CreatedAt            time.Time
 	UpdatedAt            time.Time
 	DeletedAt            gorm.DeletedAt        `gorm:"index"`
-	Roles                []Role                `gorm:"many2many:model_has_roles;foreignKey:ID;joinForeignKey:model_id;joinReferences:role_id"`
+	Roles                []Roles                `gorm:"many2many:model_has_roles;foreignKey:ID;joinForeignKey:model_id;joinReferences:role_id"`
 	Permissions          []Permission          `gorm:"many2many:model_has_permissions;foreignKey:ID;joinForeignKey:model_id;joinReferences:permission_id"`
 	PersonalAccessTokens []PersonalAccessToken `gorm:"foreignKey:TokenableID"`
 }

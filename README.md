@@ -38,21 +38,41 @@ To get started with this project:
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/Palguna1121/Go-Gin-Response-Std.git
-   cd Go-Gin-Response-Std
+   mkdir your_app
+   cd your_app
+   git clone https://github.com/Palguna1121/Go-Gin-Response-Std.git .
    ```
+
+that command is for make a directory and clone the repository to it
 
 2. Initialize Go modules:
    ```bash
    go mod init your_app
    ```
 
+that command is for initialize go modules
+
 3. Install dependencies:
    ```bash
    go mod tidy
    ```
 
+that command is for install dependencies
+
 4. Setup your environment variables:
-   ```bash
+   ```bash  
    cp .env.example .env
    ```
+
+that command is for setup your environment variables
+
+5. Run the server:
+   ```bash
+   go run main.go
+   ```
+   or if use makefile
+   ```bash
+   make run
+   ```
+
+that command is for run the server

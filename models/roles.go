@@ -3,7 +3,7 @@ package models
 
 import "time"
 
-type Role struct {
+type Roles struct {
 	ID          uint   `gorm:"primaryKey"`
 	Name        string `gorm:"size:255;uniqueIndex:role_name_guard_name"`
 	GuardName   string `gorm:"size:255;uniqueIndex:role_name_guard_name"`

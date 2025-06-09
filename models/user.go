@@ -20,7 +20,7 @@ type User struct {
 	DeletedAt            gorm.DeletedAt        `gorm:"index"`
 	Roles                []Roles                `gorm:"many2many:model_has_roles;foreignKey:ID;joinForeignKey:model_id;joinReferences:role_id"`
 	Permissions          []Permission          `gorm:"many2many:model_has_permissions;foreignKey:ID;joinForeignKey:model_id;joinReferences:permission_id"`
-	PersonalAccessTokens []PersonalAccessToken `gorm:"foreignKey:TokenableID"`
+	PersonalAccessTokens []PersonalAccessTokens `gorm:"foreignKey:TokenableID"`
 }
 
 func (u *User) CheckPassword(pw string) bool {

@@ -70,7 +70,7 @@ func (a *AuthController) Login(db *gorm.DB) gin.HandlerFunc {
 		// Set expires (12 jam dari sekarang)
 		expiresAt := time.Now().Add(12 * time.Hour)
 
-		token := models.PersonalAccessToken{
+		token := models.PersonalAccessTokens{
 			TokenableID:   user.ID,
 			TokenableType: "App\\Models\\User",
 			Name:          "go-client",
@@ -138,7 +138,7 @@ func (a *AuthController) Logout(db *gorm.DB) gin.HandlerFunc {
 		hashed := sha256.Sum256([]byte(rawToken))
 		hashedHex := hex.EncodeToString(hashed[:])
 
-		var token models.PersonalAccessToken
+		var token models.PersonalAccessTokens
 		err := db.Where("id = ? AND token = ?", tokenID, hashedHex).First(&token).Error
 		if err != nil {
 			helper.Unauthorized(c, "Token tidak dikenali")
@@ -263,7 +263,7 @@ func (a *AuthController) RefreshToken(db *gorm.DB) gin.HandlerFunc {
 			parts := strings.SplitN(strings.TrimPrefix(authHeader, "Bearer "), "|", 2)
 			if len(parts) == 2 {
 				tokenID := parts[0]
-				db.Where("id = ?", tokenID).Delete(&models.PersonalAccessToken{})
+				db.Where("id = ?", tokenID).Delete(&models.PersonalAccessTokens{})
 			}
 		}
 
@@ -274,7 +274,7 @@ func (a *AuthController) RefreshToken(db *gorm.DB) gin.HandlerFunc {
 
 		expiresAt := time.Now().Add(24 * time.Hour)
 
-		token := models.PersonalAccessToken{
+		token := models.PersonalAccessTokens{
 			TokenableID:   u.ID,
 			TokenableType: "App\\Models\\User",
 			Name:          "go-client",

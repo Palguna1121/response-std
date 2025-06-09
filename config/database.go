@@ -28,6 +28,10 @@ func MigrateDB() {
 	if err := DB.AutoMigrate(
 		&models.User{},
 		&models.Roles{},
+		&models.Permission{},
+		&models.PersonalAccessTokens{},
+		&models.ModelHasPermissions{},
+		&models.ModelHasRoles{},
 	); err != nil {
 		log.Fatalf("failed to migrate database: %v", err)
 	}

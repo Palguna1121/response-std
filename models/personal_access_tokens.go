@@ -5,7 +5,7 @@ import (
 	"time"
 )
 
-type PersonalAccessToken struct {
+type PersonalAccessTokens struct {
 	ID            uint       `gorm:"primaryKey" json:"id,omitempty"`
 	TokenableID   uint       `gorm:"index" json:"-"`
 	TokenableType string     `gorm:"size:255" json:"-"`

@@ -55,7 +55,7 @@ func AuthMiddleware(db *gorm.DB) gin.HandlerFunc {
 		hashedTokenHex := hex.EncodeToString(hashedToken[:])
 
 		// Find token in database
-		var token models.PersonalAccessToken
+		var token models.PersonalAccessTokens
 		err = db.Where("id = ? AND token = ?", id, hashedTokenHex).First(&token).Error
 		if err != nil {
 			helper.Unauthorized(c, "Invalid or expired token")

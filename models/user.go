@@ -2,8 +2,9 @@
 package models
 
 import (
-	"response-std/helper"
 	"time"
+
+	"github.com/Palguna1121/response-std/helper"
 
 	"gorm.io/gorm"
 )
@@ -17,9 +18,9 @@ type User struct {
 	RememberToken        *string `gorm:"size:100"`
 	CreatedAt            time.Time
 	UpdatedAt            time.Time
-	DeletedAt            gorm.DeletedAt        `gorm:"index"`
+	DeletedAt            gorm.DeletedAt         `gorm:"index"`
 	Roles                []Roles                `gorm:"many2many:model_has_roles;foreignKey:ID;joinForeignKey:model_id;joinReferences:role_id"`
-	Permissions          []Permission          `gorm:"many2many:model_has_permissions;foreignKey:ID;joinForeignKey:model_id;joinReferences:permission_id"`
+	Permissions          []Permission           `gorm:"many2many:model_has_permissions;foreignKey:ID;joinForeignKey:model_id;joinReferences:permission_id"`
 	PersonalAccessTokens []PersonalAccessTokens `gorm:"foreignKey:TokenableID"`
 }
 

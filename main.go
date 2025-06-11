@@ -1,9 +1,9 @@
 package main
 
 import (
-	"response-std/config"
-	"response-std/routes"
-	"response-std/services"
+	"github.com/Palguna1121/response-std/config"
+	"github.com/Palguna1121/response-std/routes"
+	"github.com/Palguna1121/response-std/services"
 
 	"github.com/gin-gonic/gin"
 )
@@ -16,7 +16,7 @@ func main() {
 
 	r := gin.Default()
 	routes.SetupRoutes(r)
-	
+
 	// Initialize Gin router
 	if config.ENV.Environment == "production" {
 		gin.SetMode(gin.ReleaseMode)

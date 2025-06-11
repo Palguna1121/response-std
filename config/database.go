@@ -3,7 +3,8 @@ package config
 import (
 	"fmt"
 	"log"
-	"response-std/models"
+
+	"github.com/Palguna1121/response-std/models"
 
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"

@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"time"
 
-	"response-std/models"
+	"github.com/Palguna1121/response-std/models"
 
 	"github.com/sirupsen/logrus"
 )

@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"time"
 
-	"response-std/helper"
-	"response-std/services"
+	"github.com/Palguna1121/response-std/helper"
+	"github.com/Palguna1121/response-std/services"
 
 	// "github.com/gin-contrib/cors"
 	"github.com/gin-contrib/cors"

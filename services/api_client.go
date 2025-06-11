@@ -8,8 +8,8 @@ import (
 	"sync"
 	"time"
 
-	"response-std/config"
-	"response-std/models"
+	"github.com/Palguna1121/response-std/config"
+	"github.com/Palguna1121/response-std/models"
 
 	"github.com/go-resty/resty/v2"
 	"github.com/google/uuid"

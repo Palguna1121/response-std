@@ -2,7 +2,8 @@ package errorhandler
 
 import (
 	"net/http"
-	"response-std/helper"
+
+	"github.com/Palguna1121/response-std/helper"
 
 	"github.com/gin-gonic/gin"
 )

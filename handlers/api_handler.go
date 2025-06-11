@@ -4,9 +4,9 @@ import (
 	"net/http"
 	"time"
 
-	"response-std/helper"
-	"response-std/models"
-	"response-std/services"
+	"github.com/Palguna1121/response-std/helper"
+	"github.com/Palguna1121/response-std/models"
+	"github.com/Palguna1121/response-std/services"
 
 	"github.com/gin-gonic/gin"
 )

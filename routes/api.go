@@ -1,11 +1,11 @@
 package routes
 
 import (
-	"response-std/config"
-	"response-std/controllers"
-	"response-std/handlers"
-	"response-std/middleware"
-	"response-std/services"
+	"github.com/Palguna1121/response-std/config"
+	"github.com/Palguna1121/response-std/controllers"
+	"github.com/Palguna1121/response-std/handlers"
+	"github.com/Palguna1121/response-std/middleware"
+	"github.com/Palguna1121/response-std/services"
 
 	"github.com/gin-gonic/gin"
 )

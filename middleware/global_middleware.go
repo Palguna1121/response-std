@@ -5,8 +5,8 @@ import (
 	"net/http"
 	"strings"
 
-	"response-std/helper"
-	"response-std/models"
+	"github.com/Palguna1121/response-std/helper"
+	"github.com/Palguna1121/response-std/models"
 
 	"github.com/gin-gonic/gin"
 )

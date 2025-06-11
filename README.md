@@ -40,7 +40,7 @@ To get started with this project:
    ```bash
    mkdir your_app
    cd your_app
-   git clone https://github.com/Palguna1121/Go-Gin-Response-Std.git .
+   git clone https://github.com/Palguna1121/response-std .
    ```
 
 that command is for make a directory and clone the repository to it

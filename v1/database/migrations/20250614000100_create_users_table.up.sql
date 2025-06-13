@@ -7,7 +7,8 @@ CREATE TABLE users (
     password VARCHAR(255) NOT NULL,
     remember_token VARCHAR(100) NULL,
     created_at TIMESTAMP NULL,
-    updated_at TIMESTAMP NULL
+    updated_at TIMESTAMP NULL,
+    deleted_at TIMESTAMP NULL
 );
 
 -- Create password_reset_tokens table

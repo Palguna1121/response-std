@@ -242,7 +242,7 @@ API_VERSION=v1  # Change to v2, v3, etc.
 
 This automatically routes requests to the appropriate version directory (`v1/`, `v2/`, etc.).
 
-## 🗄️ Database Migrations
+## 🗄️ Database Migrations (using Makefile)
 
 ### Available Commands
 ```bash

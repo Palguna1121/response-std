@@ -21,6 +21,8 @@ type Config struct {
 	EnableLogging  bool          `mapstructure:"enable_logging" default:"true"`
 	LogLevel       string        `mapstructure:"log_level" default:"info"`
 	Environment    string        `mapstructure:"environment" default:"development"`
+	API_VERSION    string        `mapstructure:"api_version" default:"v1"`
+	API_BASE_URL   string        `mapstructure:"api_base_url" default:"http://localhost:5220/api/v1"`
 }
 
 var ENV *Config
@@ -40,6 +42,8 @@ func InitConfig() {
 	viper.BindEnv("enable_logging", "ENABLE_LOGGING")
 	viper.BindEnv("log_level", "LOG_LEVEL")
 	viper.BindEnv("environment", "ENVIRONMENT")
+	viper.BindEnv("api_version", "API_VERSION")
+	viper.BindEnv("api_base_url", "API_BASE_URL")
 
 	if err := viper.ReadInConfig(); err != nil {
 		panic(fmt.Errorf("fatal error config file: %w", err))

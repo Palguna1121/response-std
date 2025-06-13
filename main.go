@@ -1,9 +1,9 @@
 package main
 
 import (
-	"github.com/Palguna1121/response-std/config"
-	"github.com/Palguna1121/response-std/routes"
-	"github.com/Palguna1121/response-std/services"
+	"response-std/config"
+	"response-std/core/router"
+	"response-std/core/services"
 
 	"github.com/gin-gonic/gin"
 )
@@ -15,14 +15,18 @@ func main() {
 	logger := services.NewLogger(config.ENV.LogLevel, config.ENV.Environment)
 
 	r := gin.Default()
-	routes.SetupRoutes(r)
+	setup, ok := router.RouteRegistry[config.ENV.API_VERSION]
+	if !ok {
+		panic("Unsupported API version: " + config.ENV.API_VERSION)
+	}
+	setup(r)
 
 	// Initialize Gin router
 	if config.ENV.Environment == "production" {
 		gin.SetMode(gin.ReleaseMode)
 	}
 
-	logger.Info("Starting API Service Starter", map[string]interface{}{
+	logger.Info("Starting API Service", map[string]interface{}{
 		"APP_PORT":    config.ENV.APP_PORT,
 		"environment": config.ENV.Environment,
 		"log_level":   config.ENV.LogLevel,

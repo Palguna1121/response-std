@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/Palguna1121/response-std/models"
-
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 )
@@ -21,20 +19,4 @@ func LoadDB() {
 	if err != nil {
 		log.Fatalf("failed to connect to database: %v", err)
 	}
-
-	// MigrateDB()
-}
-
-func MigrateDB() {
-	if err := DB.AutoMigrate(
-		&models.User{},
-		&models.Roles{},
-		&models.Permission{},
-		&models.PersonalAccessTokens{},
-		&models.ModelHasPermissions{},
-		&models.ModelHasRoles{},
-	); err != nil {
-		log.Fatalf("failed to migrate database: %v", err)
-	}
-	log.Println("Database migration completed successfully")
 }

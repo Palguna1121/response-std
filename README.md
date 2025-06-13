@@ -83,7 +83,7 @@ If you see a version number, you're ready to proceed!
 ```bash
 make migrate-up
 # or
-go run cmd/migrate.go up
+go run cmd/migrate/migrate.go up
 ```
 
 ### 2. Start the Server

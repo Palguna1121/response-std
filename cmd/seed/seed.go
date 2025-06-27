@@ -4,7 +4,7 @@ import (
 	"log"
 	"response-std/config"
 	"response-std/core/helper"
-	"response-std/core/models"
+	"response-std/core/models/entities"
 	"time"
 
 	"gorm.io/gorm"
@@ -32,7 +32,7 @@ func seedUsers(db *gorm.DB) {
 		log.Fatalf("Failed to hash password for shiroinu: %v", err)
 	}
 
-	users := []models.User{
+	users := []entities.User{
 		{
 			ID:        1,
 			Name:      "kuroneko",
@@ -58,7 +58,7 @@ func seedUsers(db *gorm.DB) {
 }
 
 func seedRoles(db *gorm.DB) {
-	roles := []models.Roles{
+	roles := []entities.Roles{
 		{
 			ID:        1,
 			Name:      "admin",
@@ -83,17 +83,17 @@ func seedRoles(db *gorm.DB) {
 
 func assignRoles(db *gorm.DB) {
 	// Assign admin role to user 1
-	adminAssignment := models.ModelHasRoles{
+	adminAssignment := entities.ModelHasRoles{
 		RoleID:    1,
-		ModelType: "models.User", // atau "App\\Models\\User" sesuai kebutuhan
+		ModelType: "entities.User", // atau "App\\entities\\User" sesuai kebutuhan
 		ModelID:   1,
 	}
 	db.Create(&adminAssignment)
 
 	// Assign staff role to user 2
-	staffAssignment := models.ModelHasRoles{
+	staffAssignment := entities.ModelHasRoles{
 		RoleID:    2,
-		ModelType: "models.User",
+		ModelType: "entities.User",
 		ModelID:   2,
 	}
 	db.Create(&staffAssignment)

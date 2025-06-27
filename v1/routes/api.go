@@ -72,6 +72,9 @@ func SetupRoutes(r *gin.Engine) {
 				// admin.GET("/users/:id", adminController.GetUserByID)
 				// admin.PUT("/users/:id", adminController.UpdateUser)
 				// admin.DELETE("/users/:id", adminController.DeleteUser)
+
+				// Example API request validation
+				// admin.Use(mware.ValidationMiddleware())
 			}
 		}
 	}

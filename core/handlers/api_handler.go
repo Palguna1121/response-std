@@ -4,7 +4,8 @@ import (
 	"net/http"
 	"time"
 
-	"response-std/core/models"
+	"response-std/core/models/requests"
+	"response-std/core/models/responses"
 	"response-std/core/response"
 	"response-std/core/services"
 
@@ -29,7 +30,7 @@ func NewAPIHandler(apiClient *services.APIClient, logger *services.Logger) *APIH
 func (h *APIHandler) HealthCheck(c *gin.Context) {
 	uptime := time.Since(h.startTime)
 
-	res := models.HealthResponse{
+	res := responses.HealthResponse{
 		Status:      "healthy",
 		Timestamp:   time.Now(),
 		Version:     "1.0.0",
@@ -41,15 +42,15 @@ func (h *APIHandler) HealthCheck(c *gin.Context) {
 
 // Execute single API request
 func (h *APIHandler) ExecuteRequest(c *gin.Context) {
-	var apiReq models.APIRequest
+	var apiReq requests.APIRequest
 
 	if apiReq.URL == "" {
-		response.BadRequest(c, "URL is required")
+		response.BadRequest(c, "URL is required", nil)
 		return
 	}
 
 	if err := c.ShouldBindJSON(&apiReq); err != nil {
-		response.UnprocessableEntity(c, err.Error())
+		response.UnprocessableEntity(c, "Data tidak valid", err)
 		return
 	}
 
@@ -71,41 +72,41 @@ func (h *APIHandler) ExecuteRequest(c *gin.Context) {
 	} else {
 		switch res.StatusCode {
 		case http.StatusBadRequest:
-			response.BadRequest(c, res.Message)
+			response.BadRequest(c, res.Message, nil)
 		case http.StatusUnauthorized:
-			response.Unauthorized(c, res.Message)
+			response.Unauthorized(c, res.Message, nil)
 		case http.StatusForbidden:
-			response.Forbidden(c, res.Message)
+			response.Forbidden(c, res.Message, nil)
 		case http.StatusNotFound:
-			response.NotFound(c, res.Message)
+			response.NotFound(c, res.Message, nil)
 		case http.StatusUnprocessableEntity:
-			response.UnprocessableEntity(c, res.Message)
+			response.UnprocessableEntity(c, res.Message, nil)
 		case http.StatusConflict:
-			response.Conflict(c, res.Message)
+			response.Conflict(c, res.Message, nil)
 		case http.StatusInternalServerError:
-			response.InternalServerError(c, res.Message)
+			response.InternalServerError(c, res.Message, nil)
 		case http.StatusServiceUnavailable:
-			response.ServiceUnavailable(c, res.Message)
+			response.ServiceUnavailable(c, res.Message, nil)
 		case http.StatusTooManyRequests:
-			response.TooManyRequests(c, res.Message)
+			response.TooManyRequests(c, res.Message, nil)
 		case http.StatusGone:
-			response.Gone(c, res.Message)
+			response.Gone(c, res.Message, nil)
 		case http.StatusPreconditionFailed:
-			response.PreconditionFailed(c, res.Message)
+			response.PreconditionFailed(c, res.Message, nil)
 		case http.StatusRequestTimeout:
-			response.RequestTimeout(c, res.Message)
+			response.RequestTimeout(c, res.Message, nil)
 		default:
-			response.InternalServerError(c, "Unexpected error")
+			response.InternalServerError(c, "Unexpected error", nil)
 		}
 	}
 }
 
 // template for get request
 func (h *APIHandler) GetRequest(c *gin.Context) {
-	var apiReq models.APIRequest
+	var apiReq requests.APIRequest
 
 	if err := c.ShouldBindQuery(&apiReq); err != nil {
-		response.UnprocessableEntity(c, err.Error())
+		response.UnprocessableEntity(c, "Data tidak valid", err)
 		return
 	}
 
@@ -118,11 +119,11 @@ func (h *APIHandler) GetRequest(c *gin.Context) {
 	} else {
 		switch res.StatusCode {
 		case http.StatusBadRequest:
-			response.BadRequest(c, res.Message)
+			response.BadRequest(c, res.Message, nil)
 		case http.StatusUnauthorized:
-			response.Unauthorized(c, res.Message)
+			response.Unauthorized(c, res.Message, nil)
 		default:
-			response.InternalServerError(c, "Unexpected error")
+			response.InternalServerError(c, "Unexpected error", nil)
 		}
 	}
 }

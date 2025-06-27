@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"response-std/core/models"
+	"response-std/core/models/entities"
 	"response-std/core/response"
 
 	"github.com/gin-gonic/gin"
@@ -24,7 +24,7 @@ func AuthMiddleware(db *gorm.DB) gin.HandlerFunc {
 
 		// Check if Authorization header exists and has Bearer token
 		if authHeader == "" || !strings.HasPrefix(authHeader, "Bearer ") {
-			response.Unauthorized(c, "Authorization header required")
+			response.Unauthorized(c, "Authorization header required", nil, "[Auth Middleware]")
 			c.Abort()
 			return
 		}
@@ -35,7 +35,7 @@ func AuthMiddleware(db *gorm.DB) gin.HandlerFunc {
 		// Parse token format: ID|plain_token
 		parts := strings.SplitN(tokenString, "|", 2)
 		if len(parts) != 2 {
-			response.Unauthorized(c, "Invalid token format")
+			response.Unauthorized(c, "Invalid token format", nil, "[Auth Middleware]")
 			c.Abort()
 			return
 		}
@@ -45,7 +45,7 @@ func AuthMiddleware(db *gorm.DB) gin.HandlerFunc {
 		// Convert token ID to integer
 		id, err := strconv.Atoi(tokenID)
 		if err != nil {
-			response.Unauthorized(c, "Invalid token ID")
+			response.Unauthorized(c, "Invalid token ID", err, "[Auth Middleware]")
 			c.Abort()
 			return
 		}
@@ -55,10 +55,10 @@ func AuthMiddleware(db *gorm.DB) gin.HandlerFunc {
 		hashedTokenHex := hex.EncodeToString(hashedToken[:])
 
 		// Find token in database
-		var token models.PersonalAccessTokens
+		var token entities.PersonalAccessTokens
 		err = db.Where("id = ? AND token = ?", id, hashedTokenHex).First(&token).Error
 		if err != nil {
-			response.Unauthorized(c, "Invalid or expired token")
+			response.Unauthorized(c, "Invalid or expired token", err, "[Auth Middleware]")
 			c.Abort()
 			return
 		}
@@ -67,17 +67,17 @@ func AuthMiddleware(db *gorm.DB) gin.HandlerFunc {
 		if token.ExpiresAt != nil && token.ExpiresAt.Before(time.Now()) {
 			// Delete expired token
 			db.Delete(&token)
-			response.Unauthorized(c, "Token has expired")
+			response.Unauthorized(c, "Token has expired", nil, "[Auth Middleware]")
 			c.Abort()
 			return
 		}
 
 		// Get user associated with the token
-		var user models.User
+		var user entities.User
 		err = db.Preload("Roles.Permissions").Preload("Permissions").
 			Where("id = ?", token.TokenableID).First(&user).Error
 		if err != nil {
-			response.Unauthorized(c, "User not found")
+			response.Unauthorized(c, "User not found", err, "[Auth Middleware]")
 			c.Abort()
 			return
 		}
@@ -98,14 +98,14 @@ func RoleMiddleware(requiredRole string) gin.HandlerFunc {
 		// Get user from context (set by AuthMiddleware)
 		userInterface, exists := c.Get("user")
 		if !exists {
-			response.Unauthorized(c, "User not authenticated")
+			response.Unauthorized(c, "User not authenticated", nil, "[Role Middleware]")
 			c.Abort()
 			return
 		}
 
-		user, ok := userInterface.(models.User)
+		user, ok := userInterface.(entities.User)
 		if !ok {
-			response.Unauthorized(c, "Invalid user data")
+			response.Unauthorized(c, "Invalid user data", nil, "[Role Middleware]")
 			c.Abort()
 			return
 		}
@@ -120,7 +120,7 @@ func RoleMiddleware(requiredRole string) gin.HandlerFunc {
 		}
 
 		if !hasRole {
-			response.Forbidden(c, fmt.Sprintf("Access denied. Required role: %s", requiredRole))
+			response.Forbidden(c, fmt.Sprintf("Access denied. Required role: %s", requiredRole), nil, "[Role Middleware]")
 			c.Abort()
 			return
 		}
@@ -137,14 +137,14 @@ func PermissionMiddleware(requiredPermission string) gin.HandlerFunc {
 		// Get user from context
 		userInterface, exists := c.Get("user")
 		if !exists {
-			response.Unauthorized(c, "User not authenticated")
+			response.Unauthorized(c, "User not authenticated", nil, "[Permission Middleware]")
 			c.Abort()
 			return
 		}
 
-		user, ok := userInterface.(models.User)
+		user, ok := userInterface.(entities.User)
 		if !ok {
-			response.Unauthorized(c, "Invalid user data")
+			response.Unauthorized(c, "Invalid user data", nil, "[Permission Middleware]")
 			c.Abort()
 			return
 		}
@@ -174,7 +174,7 @@ func PermissionMiddleware(requiredPermission string) gin.HandlerFunc {
 		}
 
 		if !hasPermission {
-			response.Forbidden(c, fmt.Sprintf("Access denied. Required permission: %s", requiredPermission))
+			response.Forbidden(c, fmt.Sprintf("Access denied. Required permission: %s", requiredPermission), nil, "[Permission Middleware]")
 			c.Abort()
 			return
 		}

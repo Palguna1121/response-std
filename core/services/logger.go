@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"time"
 
-	"response-std/core/models"
+	"response-std/core/models/requests"
 
 	"github.com/sirupsen/logrus"
 )
@@ -14,6 +14,8 @@ import (
 type Logger struct {
 	logger *logrus.Logger
 }
+
+var AppLogger *Logger
 
 func NewLogger(logLevel, environment string) *Logger {
 	logger := logrus.New()
@@ -45,7 +47,16 @@ func NewLogger(logLevel, environment string) *Logger {
 
 	// Set output to file in production
 	if environment == "production" {
-		logFile := filepath.Join(logsDir, fmt.Sprintf("api-service-%s.log", time.Now().Format("2006-01-02")))
+		logFile := filepath.Join(logsDir, fmt.Sprintf("%s-api-service.log", time.Now().Format("2006-01-02")))
+		file, err := os.OpenFile(logFile, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
+		if err == nil {
+			logger.SetOutput(file)
+		}
+	}
+
+	// Set output to file in development
+	if environment == "development" {
+		logFile := filepath.Join(logsDir, fmt.Sprintf("%s-api-development.log", time.Now().Format("2006-01-02")))
 		file, err := os.OpenFile(logFile, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
 		if err == nil {
 			logger.SetOutput(file)
@@ -55,7 +66,7 @@ func NewLogger(logLevel, environment string) *Logger {
 	return &Logger{logger: logger}
 }
 
-func (l *Logger) LogRequest(requestLog *models.RequestLog) {
+func (l *Logger) LogRequest(requestLog *requests.RequestLog) {
 	l.logger.WithFields(logrus.Fields{
 		"request_id":  requestLog.ID,
 		"method":      requestLog.Method,

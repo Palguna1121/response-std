@@ -12,21 +12,25 @@ func main() {
 	config.InitConfig()
 	config.LoadDB()
 	// Initialize logger
-	logger := services.NewLogger(config.ENV.LogLevel, config.ENV.Environment)
+	services.AppLogger = services.NewLogger(config.ENV.LogLevel, config.ENV.Environment)
+
+	var log = services.AppLogger
 
 	r := gin.Default()
-	setup, ok := router.RouteRegistry[config.ENV.API_VERSION]
-	if !ok {
-		panic("Unsupported API version: " + config.ENV.API_VERSION)
+	for _, version := range config.ENV.API_VERSION {
+		setup, ok := router.RouteRegistry[version]
+		if !ok {
+			panic("Unsupported API version: " + version)
+		}
+		setup(r)
 	}
-	setup(r)
 
 	// Initialize Gin router
 	if config.ENV.Environment == "production" {
 		gin.SetMode(gin.ReleaseMode)
 	}
 
-	logger.Info("Starting API Service", map[string]interface{}{
+	log.Info("Starting API Service", map[string]interface{}{
 		"APP_PORT":    config.ENV.APP_PORT,
 		"environment": config.ENV.Environment,
 		"log_level":   config.ENV.LogLevel,

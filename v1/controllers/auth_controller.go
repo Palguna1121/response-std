@@ -4,13 +4,12 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
-	"log"
 	"math/rand"
 	"strings"
 	"time"
 
 	"response-std/core/helper"
-	"response-std/core/models"
+	"response-std/core/models/entities"
 	"response-std/core/response"
 
 	"github.com/gin-gonic/gin"
@@ -37,7 +36,7 @@ func (a *AuthController) Login(db *gorm.DB) gin.HandlerFunc {
 		}
 
 		if err := c.ShouldBindJSON(&input); err != nil {
-			response.UnprocessableEntity(c, "Invalid credentials")
+			response.UnprocessableEntity(c, "Invalid credentials", err, "[Login]")
 			return
 		}
 
@@ -49,17 +48,17 @@ func (a *AuthController) Login(db *gorm.DB) gin.HandlerFunc {
 			loginField = "name"
 		}
 
-		var user models.User
+		var user entities.User
 		err := db.Preload("Roles.Permissions").Preload("Permissions").
 			Where(loginField+" = ?", input.Username).First(&user).Error
 
 		if err != nil {
-			response.UnprocessableEntity(c, "Invalid credentials")
+			response.UnprocessableEntity(c, "Invalid credentials", err, "[Login]")
 			return
 		}
 
 		if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(input.Password)); err != nil {
-			response.UnprocessableEntity(c, "Invalid credentials")
+			response.UnprocessableEntity(c, "Invalid credentials", err, "[Login]")
 			return
 		}
 
@@ -71,9 +70,9 @@ func (a *AuthController) Login(db *gorm.DB) gin.HandlerFunc {
 		// Set expires (12 jam dari sekarang)
 		expiresAt := time.Now().Add(12 * time.Hour)
 
-		token := models.PersonalAccessTokens{
+		token := entities.PersonalAccessTokens{
 			TokenableID:   user.ID,
-			TokenableType: "App\\Models\\User",
+			TokenableType: "App\\entities\\User",
 			Name:          "go-client",
 			Token:         hashedTokenHex,
 			Abilities:     helper.StringPtr("['*']"),
@@ -91,13 +90,13 @@ func (a *AuthController) Login(db *gorm.DB) gin.HandlerFunc {
 		})
 
 		if err != nil {
-			log.Printf("Error creating token: %v", err)
-			response.InternalServerError(c, "Failed to create token")
+			// log.Printf("Error creating token: %v", err)
+			response.InternalServerError(c, "Failed to create token", err, "[Login]")
 			return
 		}
 
 		if token.ID == 0 {
-			response.InternalServerError(c, "Failed to get token")
+			response.InternalServerError(c, "Failed to get token", nil, "[Login]")
 			return
 		}
 
@@ -125,13 +124,13 @@ func (a *AuthController) Logout(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		authHeader := c.GetHeader("Authorization")
 		if !strings.HasPrefix(authHeader, "Bearer ") {
-			response.Unauthorized(c, "Token tidak valid")
+			response.Unauthorized(c, "Token tidak valid", nil, "[Logout]")
 			return
 		}
 
 		parts := strings.SplitN(strings.TrimPrefix(authHeader, "Bearer "), "|", 2)
 		if len(parts) != 2 {
-			response.Unauthorized(c, "Token tidak lengkap")
+			response.Unauthorized(c, "Token tidak lengkap", nil, "[Logout]")
 			return
 		}
 
@@ -139,17 +138,17 @@ func (a *AuthController) Logout(db *gorm.DB) gin.HandlerFunc {
 		hashed := sha256.Sum256([]byte(rawToken))
 		hashedHex := hex.EncodeToString(hashed[:])
 
-		var token models.PersonalAccessTokens
+		var token entities.PersonalAccessTokens
 		err := db.Where("id = ? AND token = ?", tokenID, hashedHex).First(&token).Error
 		if err != nil {
-			response.Unauthorized(c, "Token tidak dikenali")
+			response.Unauthorized(c, "Token tidak dikenali", err, "[Logout]")
 			return
 		}
 
 		// Hapus token dari database
 		if err := db.Delete(&token).Error; err != nil {
-			log.Printf("Error deleting token: %v", err)
-			response.InternalServerError(c, "Failed to logout")
+			// log.Printf("Error deleting token: %v", err)
+			response.InternalServerError(c, "Failed to logout", err, "[Logout]")
 			return
 		}
 
@@ -170,20 +169,20 @@ func (a *AuthController) Register(db *gorm.DB) gin.HandlerFunc {
 		}
 
 		if err := c.ShouldBindJSON(&input); err != nil {
-			response.BadRequest(c, "Data tidak valid")
+			response.BadRequest(c, "Data tidak valid", err, "[Register]")
 			return
 		}
 
 		if input.Password != input.PasswordConfirmation {
-			response.UnprocessableEntity(c, "Password dan konfirmasi password tidak cocok")
+			response.UnprocessableEntity(c, "Password dan konfirmasi password tidak cocok", nil, "[Register]")
 			return
 		}
 
 		// Cek apakah email sudah digunakan
 		var count int64
-		db.Model(&models.User{}).Where("email = ?", input.Email).Count(&count)
+		db.Model(&entities.User{}).Where("email = ?", input.Email).Count(&count)
 		if count > 0 {
-			response.UnprocessableEntity(c, "Email sudah digunakan")
+			response.UnprocessableEntity(c, "Email sudah digunakan", nil, "[Register]")
 			return
 		}
 
@@ -191,20 +190,20 @@ func (a *AuthController) Register(db *gorm.DB) gin.HandlerFunc {
 		// Laravel default menggunakan cost 12, tapi 10-12 sudah cukup aman
 		hashedPassword, err := bcrypt.GenerateFromPassword([]byte(input.Password), 12)
 		if err != nil {
-			log.Printf("Error hashing password: %v", err)
-			response.InternalServerError(c, "Gagal memproses password")
+			// log.Printf("Error hashing password: %v", err)
+			response.InternalServerError(c, "Gagal memproses password", err, "[Register]")
 			return
 		}
 
-		user := models.User{
+		user := entities.User{
 			Name:     input.Name,
 			Email:    input.Email,
 			Password: string(hashedPassword), // Simpan password yang sudah di-hash
 		}
 
 		if err := db.Create(&user).Error; err != nil {
-			log.Printf("Error creating user: %v", err)
-			response.UnprocessableEntity(c, "Gagal mendaftar")
+			// log.Printf("Error creating user: %v", err)
+			response.UnprocessableEntity(c, "Gagal mendaftar", err, "[Register]")
 			return
 		}
 
@@ -220,13 +219,13 @@ func (a *AuthController) Register(db *gorm.DB) gin.HandlerFunc {
 func (a *AuthController) Me(c *gin.Context) {
 	user, exists := c.Get("user")
 	if !exists {
-		response.Unauthorized(c, "Unauthenticated")
+		response.Unauthorized(c, "Unauthenticated", nil, "[Me]")
 		return
 	}
 
-	u, ok := user.(models.User)
+	u, ok := user.(entities.User)
 	if !ok {
-		response.NotFound(c, "User not found")
+		response.NotFound(c, "User not found", nil, "[Me]")
 		return
 	}
 
@@ -248,13 +247,13 @@ func (a *AuthController) RefreshToken(db *gorm.DB) gin.HandlerFunc {
 		// Dapatkan user dari middleware auth
 		user, exists := c.Get("user")
 		if !exists {
-			response.Unauthorized(c, "Unauthenticated")
+			response.Unauthorized(c, "Unauthenticated", nil, "[RefreshToken]")
 			return
 		}
 
-		u, ok := user.(models.User)
+		u, ok := user.(entities.User)
 		if !ok {
-			response.NotFound(c, "User not found")
+			response.NotFound(c, "User not found", nil, "[RefreshToken]")
 			return
 		}
 
@@ -264,7 +263,7 @@ func (a *AuthController) RefreshToken(db *gorm.DB) gin.HandlerFunc {
 			parts := strings.SplitN(strings.TrimPrefix(authHeader, "Bearer "), "|", 2)
 			if len(parts) == 2 {
 				tokenID := parts[0]
-				db.Where("id = ?", tokenID).Delete(&models.PersonalAccessTokens{})
+				db.Where("id = ?", tokenID).Delete(&entities.PersonalAccessTokens{})
 			}
 		}
 
@@ -275,9 +274,9 @@ func (a *AuthController) RefreshToken(db *gorm.DB) gin.HandlerFunc {
 
 		expiresAt := time.Now().Add(24 * time.Hour)
 
-		token := models.PersonalAccessTokens{
+		token := entities.PersonalAccessTokens{
 			TokenableID:   u.ID,
-			TokenableType: "App\\Models\\User",
+			TokenableType: "App\\entities\\User",
 			Name:          "go-client",
 			Token:         hashedTokenHex,
 			Abilities:     helper.StringPtr("['*']"),
@@ -287,7 +286,7 @@ func (a *AuthController) RefreshToken(db *gorm.DB) gin.HandlerFunc {
 		}
 
 		if err := db.Create(&token).Error; err != nil {
-			response.InternalServerError(c, "Failed to create token")
+			response.InternalServerError(c, "Failed to create token", err, "[RefreshToken]")
 			return
 		}
 
@@ -308,7 +307,7 @@ func (a *AuthController) RefreshToken(db *gorm.DB) gin.HandlerFunc {
 // ---------------------------
 // UTILITIES
 // ---------------------------
-func getPrimaryRole(roles []models.Roles) string {
+func getPrimaryRole(roles []entities.Roles) string {
 	if len(roles) > 0 {
 		return roles[0].Name
 	}

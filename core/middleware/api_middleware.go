@@ -55,7 +55,7 @@ func ErrorHandlingMiddleware(logger *services.Logger) gin.HandlerFunc {
 		if err, ok := recovered.(string); ok {
 			logger.Error("Panic recovered: "+err, nil, map[string]interface{}{})
 		}
-		response.InternalServerError(c, "Internal server error occurred")
+		response.InternalServerError(c, "Internal server error occurred", nil, "[Error Handling Middleware]")
 	})
 }
 
@@ -67,7 +67,7 @@ var limiter = rate.NewLimiter(10, 20) // 10 requests per second, burst of 20
 func RateLimitMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		if !limiter.Allow() {
-			response.TooManyRequests(c, "Rate limit exceeded")
+			response.TooManyRequests(c, "Rate limit exceeded", nil, "[Rate Limit Middleware]")
 			c.Abort()
 			return
 		}

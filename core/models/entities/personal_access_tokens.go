@@ -1,5 +1,4 @@
-// models/personal_access_token.go
-package models
+package entities
 
 import (
 	"time"

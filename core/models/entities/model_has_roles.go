@@ -1,4 +1,4 @@
-package models
+package entities
 
 type ModelHasRoles struct {
 	RoleID    uint   `gorm:"primaryKey"`

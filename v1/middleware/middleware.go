@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"strings"
 
-	"response-std/core/models"
+	"response-std/core/models/entities"
 	"response-std/core/response"
 
 	"github.com/gin-gonic/gin"
@@ -19,14 +19,14 @@ func OwnerMiddleware(resourceIDParam string) gin.HandlerFunc {
 		// Get user from context
 		userInterface, exists := c.Get("user")
 		if !exists {
-			response.Unauthorized(c, "User not authenticated")
+			response.Unauthorized(c, "User not authenticated", nil, "[Owner Middleware]")
 			c.Abort()
 			return
 		}
 
-		user, ok := userInterface.(models.User)
+		user, ok := userInterface.(entities.User)
 		if !ok {
-			response.Unauthorized(c, "Invalid user data")
+			response.Unauthorized(c, "Invalid user data", nil, "[Owner Middleware]")
 			c.Abort()
 			return
 		}
@@ -47,7 +47,7 @@ func OwnerMiddleware(resourceIDParam string) gin.HandlerFunc {
 			}
 
 			if !isAdmin {
-				response.Forbidden(c, "Access denied. You can only access your own resources")
+				response.Forbidden(c, "Access denied. You can only access your own resources", nil, "[Owner Middleware]")
 				c.Abort()
 				return
 			}
@@ -70,7 +70,7 @@ func ValidationMiddleware() gin.HandlerFunc {
 			contentType := c.GetHeader("Content-Type")
 			if !strings.Contains(contentType, "application/json") &&
 				!strings.Contains(contentType, "multipart/form-data") {
-				response.BadRequest(c, "Content-Type must be application/json or multipart/form-data")
+				response.BadRequest(c, "Content-Type must be application/json or multipart/form-data", nil, "[Request Validation Middleware]")
 				c.Abort()
 				return
 			}
@@ -87,14 +87,14 @@ func AdminMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		userInterface, exists := c.Get("user")
 		if !exists {
-			response.Unauthorized(c, "User not authenticated")
+			response.Unauthorized(c, "User not authenticated", nil, "[Admin Middleware]")
 			c.Abort()
 			return
 		}
 
-		user, ok := userInterface.(models.User)
+		user, ok := userInterface.(entities.User)
 		if !ok {
-			response.Unauthorized(c, "Invalid user data")
+			response.Unauthorized(c, "Invalid user data", nil, "[Admin Middleware]")
 			c.Abort()
 			return
 		}
@@ -109,7 +109,7 @@ func AdminMiddleware() gin.HandlerFunc {
 		}
 
 		if !isAdmin {
-			response.Forbidden(c, "Access denied. Admin privileges required")
+			response.Forbidden(c, "Access denied. Admin privileges required", nil, "[Admin Middleware]")
 			c.Abort()
 			return
 		}
@@ -127,14 +127,14 @@ func MultipleRolesMiddleware(roles ...string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		userInterface, exists := c.Get("user")
 		if !exists {
-			response.Unauthorized(c, "User not authenticated")
+			response.Unauthorized(c, "User not authenticated", nil, "[Multiple Roles Middleware]")
 			c.Abort()
 			return
 		}
 
-		user, ok := userInterface.(models.User)
+		user, ok := userInterface.(entities.User)
 		if !ok {
-			response.Unauthorized(c, "Invalid user data")
+			response.Unauthorized(c, "Invalid user data", nil, "[Multiple Roles Middleware]")
 			c.Abort()
 			return
 		}
@@ -153,7 +153,7 @@ func MultipleRolesMiddleware(roles ...string) gin.HandlerFunc {
 		}
 
 		if !hasRole {
-			response.Forbidden(c, "Access denied. Insufficient privileges")
+			response.Forbidden(c, "Access denied. Insufficient privileges", nil, "[Multiple Roles Middleware]")
 			c.Abort()
 			return
 		}
@@ -176,7 +176,7 @@ func IPWhitelistMiddleware(allowedIPs []string) gin.HandlerFunc {
 		}
 
 		if !allowed {
-			response.Forbidden(c, "IP address not whitelisted")
+			response.Forbidden(c, "IP address not whitelisted", nil, "[IP Whitelist Middleware]")
 			c.Abort()
 			return
 		}

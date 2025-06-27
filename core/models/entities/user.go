@@ -1,5 +1,4 @@
-// models/user.go
-package models
+package entities
 
 import (
 	"time"

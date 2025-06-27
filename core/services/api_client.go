@@ -9,7 +9,8 @@ import (
 	"time"
 
 	"response-std/config"
-	"response-std/core/models"
+	"response-std/core/models/requests"
+	"response-std/core/models/responses"
 
 	"github.com/go-resty/resty/v2"
 	"github.com/google/uuid"
@@ -29,7 +30,7 @@ func NewAPIClient(cfg *config.Config, logger *Logger) *APIClient {
 
 	// Set default headers
 	client.SetHeaders(map[string]string{
-		"Accept":     "application/json",
+		"Accept": "application/json",
 	})
 
 	return &APIClient{
@@ -39,10 +40,10 @@ func NewAPIClient(cfg *config.Config, logger *Logger) *APIClient {
 	}
 }
 
-func (ac *APIClient) ExecuteRequest(apiReq *models.APIRequest) *models.APIResponse {
+func (ac *APIClient) ExecuteRequest(apiReq *requests.APIRequest) *responses.APIResponse {
 	// Validate request
 	if err := apiReq.Validate(); err != nil {
-		return &models.APIResponse{
+		return &responses.APIResponse{
 			Success:   false,
 			Error:     err.Error(),
 			Message:   "Invalid request",
@@ -53,13 +54,13 @@ func (ac *APIClient) ExecuteRequest(apiReq *models.APIRequest) *models.APIRespon
 	requestID := uuid.New().String()
 	startTime := time.Now()
 
-	response := &models.APIResponse{
+	response := &responses.APIResponse{
 		RequestID: requestID,
 		Timestamp: startTime,
 	}
 
 	// Create request log
-	requestLog := &models.RequestLog{
+	requestLog := &requests.RequestLog{
 		ID:          requestID,
 		Method:      apiReq.Method,
 		URL:         apiReq.URL,
@@ -166,13 +167,13 @@ func (ac *APIClient) ExecuteRequest(apiReq *models.APIRequest) *models.APIRespon
 	return response
 }
 
-func (ac *APIClient) ExecuteBatchRequest(batchReq *models.BatchAPIRequest) *models.BatchAPIResponse {
+func (ac *APIClient) ExecuteBatchRequest(batchReq *requests.BatchAPIRequest) *responses.BatchAPIResponse {
 	startTime := time.Now()
 
-	batchResponse := &models.BatchAPIResponse{
+	batchResponse := &responses.BatchAPIResponse{
 		Total:     len(batchReq.Requests),
 		Timestamp: startTime,
-		Results:   make([]models.APIResponse, len(batchReq.Requests)),
+		Results:   make([]responses.APIResponse, len(batchReq.Requests)),
 	}
 
 	if batchReq.Parallel {
@@ -182,7 +183,7 @@ func (ac *APIClient) ExecuteBatchRequest(batchReq *models.BatchAPIRequest) *mode
 
 		for i, req := range batchReq.Requests {
 			wg.Add(1)
-			go func(index int, apiReq models.APIRequest) {
+			go func(index int, apiReq requests.APIRequest) {
 				defer wg.Done()
 
 				result := ac.ExecuteRequest(&apiReq)

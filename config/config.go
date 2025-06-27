@@ -2,12 +2,14 @@ package config
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/spf13/viper"
 )
 
 type Config struct {
+	APP_NAME       string        `mapstructure:"app_name" default:"response-std"`
 	APP_PORT       string        `mapstructure:"app_port" default:"5220"`
 	DB_HOST        string        `mapstructure:"db_host" default:"localhost"`
 	DB_PORT        string        `mapstructure:"db_port" default:"3306"`
@@ -21,7 +23,7 @@ type Config struct {
 	EnableLogging  bool          `mapstructure:"enable_logging" default:"true"`
 	LogLevel       string        `mapstructure:"log_level" default:"info"`
 	Environment    string        `mapstructure:"environment" default:"development"`
-	API_VERSION    string        `mapstructure:"api_version" default:"v1"`
+	API_VERSION    []string      `mapstructure:"api_version" default:"v1"`
 	API_BASE_URL   string        `mapstructure:"api_base_url" default:"http://localhost:5220/api/v1"`
 }
 
@@ -29,6 +31,7 @@ var ENV *Config
 
 func InitConfig() {
 	viper.SetConfigFile(".env")
+	viper.BindEnv("app_name", "APP_NAME")
 	viper.BindEnv("port", "APP_PORT")
 	viper.BindEnv("db_host", "DB_HOST")
 	viper.BindEnv("db_port", "DB_PORT")
@@ -48,6 +51,9 @@ func InitConfig() {
 	if err := viper.ReadInConfig(); err != nil {
 		panic(fmt.Errorf("fatal error config file: %w", err))
 	}
+
+	rawVersions := viper.GetString("api_version")
+	viper.Set("api_version", strings.Split(rawVersions, ","))
 
 	if err := viper.Unmarshal(&ENV); err != nil {
 		panic(fmt.Errorf("unable to decode into struct: %w", err))

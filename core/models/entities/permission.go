@@ -1,5 +1,4 @@
-// models/permission.go
-package models
+package entities
 
 import "time"
 

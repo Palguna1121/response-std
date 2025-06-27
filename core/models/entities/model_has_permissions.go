@@ -1,4 +1,4 @@
-package models
+package entities
 
 type ModelHasPermissions struct {
 	PermissionID uint       `gorm:"primaryKey"`

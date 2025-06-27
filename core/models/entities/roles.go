@@ -1,5 +1,4 @@
-// models/role.go
-package models
+package entities
 
 import "time"
 

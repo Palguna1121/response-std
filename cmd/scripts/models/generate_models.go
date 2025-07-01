@@ -11,7 +11,7 @@ import (
 
 func main() {
 	if len(os.Args) < 2 {
-		log.Fatal("Usage: go run generate_models.go <table_name> [version]")
+		log.Fatal("Usage: go run cmd/scripts/controllers/generate_models.go <table_name> [version]")
 	}
 	table := os.Args[1]
 

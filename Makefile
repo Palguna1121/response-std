@@ -8,10 +8,16 @@ test:
 	go test ./...
 
 # make models
-models:
+model:
 	@echo "Generating models... $(name) (version: $(ver))"
-	go run cmd/scripts/generate_models.go $(name) $(ver)
+	go run cmd/scripts/models/generate_models.go $(name) $(ver)
 #usage: make models name=users ver=v1
+
+# make controllers
+controller:
+	@echo "Generating controllers... $(name) (version: $(ver))"
+	go run cmd/scripts/controllers/generate_controllers.go $(name) $(ver)
+#usage: make controllers name=users ver=v1
 
 # migrate using golang-migrate/migrate driver mysql
 # default version fallback = v1

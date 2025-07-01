@@ -5,17 +5,21 @@ import (
 	"io"
 	"os"
 	"os/exec"
-
 	"response-std/config"
 )
 
 func main() {
 	if len(os.Args) < 2 {
-		fmt.Println("Usage: go run cmd/migrate.go [up|down|drop|...]")
+		fmt.Println("Usage: go run cmd/migrate/migrate.go [up|down|drop|force VERSION] [ver]")
 		return
 	}
 
 	action := os.Args[1]
+
+	version := "v1" // default
+	if len(os.Args) >= 3 {
+		version = os.Args[2]
+	}
 
 	config.InitConfig()
 
@@ -28,13 +32,18 @@ func main() {
 		config.ENV.DB_NAME,
 	)
 
-	cmd := exec.Command(
-		"migrate",
-		"-database", url,
-		"-path", fmt.Sprintf("%s/database/migrations", config.ENV.API_VERSION),
-		action,
-	)
+	migrationPath := fmt.Sprintf("%s/database/migrations", version)
 
+	// Handle `force` needing version number after 'force'
+	args := []string{"-database", url, "-path", migrationPath, action}
+	if action == "force" && len(os.Args) >= 4 {
+		forceVersion := os.Args[3]
+		args = append(args, forceVersion)
+	}
+
+	cmd := exec.Command("migrate", args...)
+
+	// Handle destructive commands (down, drop)
 	if action == "down" || action == "drop" {
 		stdin, err := cmd.StdinPipe()
 		if err != nil {

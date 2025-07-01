@@ -137,8 +137,7 @@ func (s *Spatie) AssignPermissionToRole(roleID, permissionID uint) error {
 }
 
 func (s *Spatie) AssignDirectPermissionToUser(userID, permissionID uint) error {
-	// Implementasi assign permission langsung ke user
-	return nil
+	return s.repo.AssignDirectPermissionToUser(context.Background(), userID, permissionID)
 }
 
 // ==================== Checking ====================

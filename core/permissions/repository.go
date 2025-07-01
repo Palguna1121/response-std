@@ -67,9 +67,19 @@ func (r *Repository) DeletePermission(ctx context.Context, id uint) error {
 
 // Model-Role-Permission Relationship Methods
 func (r *Repository) AssignRoleToUser(ctx context.Context, userID uint, roleID uint) error {
-	user := entities.User{ID: userID}
-	role := entities.Roles{ID: roleID}
-	return r.db.WithContext(ctx).Model(&user).Association("Roles").Append(&role)
+	return r.db.WithContext(ctx).Table("model_has_roles").Create(&entities.ModelHasRoles{
+		ModelID:   userID,
+		ModelType: "App\\Models\\User",
+		RoleID:    roleID,
+	}).Error
+}
+
+func (r *Repository) AssignDirectPermissionToUser(ctx context.Context, userID uint, permissionID uint) error {
+	return r.db.WithContext(ctx).Table("model_has_permissions").Create(&entities.ModelHasPermissions{
+		ModelID:      userID,
+		ModelType:    "App\\Models\\User",
+		PermissionID: permissionID,
+	}).Error
 }
 
 func (r *Repository) AssignPermissionToRole(ctx context.Context, roleID uint, permissionID uint) error {

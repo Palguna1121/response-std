@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"time"
 
-	"response-std/core/models/requests"
+	"response-std/core/requests"
 	"response-std/core/models/responses"
 	"response-std/core/response"
 	"response-std/core/services"

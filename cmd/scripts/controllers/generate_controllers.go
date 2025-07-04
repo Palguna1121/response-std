@@ -10,7 +10,7 @@ import (
 
 func main() {
 	if len(os.Args) < 2 {
-		log.Fatal("Usage: go run cmd/scripts/controllers/generate_controllers.go <controller_name> [version]")
+		log.Fatal("Usage: go run cmd/scripts/controllers/generate_controllers.go [controller_name] [version]")
 	}
 
 	controllerName := os.Args[1]
@@ -29,9 +29,11 @@ func main() {
 	data := struct {
 		Name      string
 		CamelCase string
+		LowerCase string
 	}{
 		Name:      controllerName,
 		CamelCase: toCamelCase(controllerName),
+		LowerCase: strings.ToLower(controllerName),
 	}
 
 	err := os.MkdirAll(filepath.Dir(outputPath), os.ModePerm)
@@ -61,10 +63,38 @@ func main() {
 var controllerTemplate = `package controllers
 
 import (
+	"net/http"
+	"strconv"
+
 	"github.com/gin-gonic/gin"
 
 	"response-std/core/response"
+	// TODO: Import your request structs here
+	// "your-project/v1/requests"
 )
+
+//delete this section if unused===============================
+// {{.CamelCase}}Request represents the request structure for {{.Name}}
+type {{.CamelCase}}Request struct {
+	// TODO: Define your request fields here
+	// Example:
+	// Name        string ` + "`" + `json:"name" form:"name"` + "`" + `
+	// Email       string ` + "`" + `json:"email" form:"email"` + "`" + `
+	// Phone       string ` + "`" + `json:"phone" form:"phone"` + "`" + `
+	// Description string ` + "`" + `json:"description" form:"description"` + "`" + `
+}
+
+// {{.CamelCase}}UpdateRequest represents the request structure for updating {{.Name}}
+type {{.CamelCase}}UpdateRequest struct {
+	// TODO: Define your update request fields here
+	// Example:
+	// Name        *string ` + "`" + `json:"name,omitempty" form:"name"` + "`" + `
+	// Email       *string ` + "`" + `json:"email,omitempty" form:"email"` + "`" + `
+	// Phone       *string ` + "`" + `json:"phone,omitempty" form:"phone"` + "`" + `
+	// Description *string ` + "`" + `json:"description,omitempty" form:"description"` + "`" + `
+}
+//delete this section if unused================================
+
 
 // {{.CamelCase}}Controller implements the {{.CamelCase}} controller.
 type {{.CamelCase}}Controller struct{}
@@ -75,8 +105,8 @@ func New{{.CamelCase}}Controller() *{{.CamelCase}}Controller {
 }
 
 // List{{.CamelCase}} returns a list of {{.Name}}s.
-func (ctl *{{.CamelCase}}Controller) List{{.Name}}(c *gin.Context) {
-	data, exists := c.Get("{{.Name}}s")
+func (ctl *{{.CamelCase}}Controller) List{{.CamelCase}}(c *gin.Context) {
+	data, exists := c.Get("{{.LowerCase}}")
 	if !exists {
 		response.NotFound(c, "{{.Name}}s not found", nil, "[List{{.CamelCase}}]")
 		return
@@ -87,39 +117,73 @@ func (ctl *{{.CamelCase}}Controller) List{{.Name}}(c *gin.Context) {
 
 // Get{{.CamelCase}}ByID returns a single {{.Name}}.
 func (ctl *{{.CamelCase}}Controller) Get{{.CamelCase}}ByID(c *gin.Context) {
-	data, exists := c.Get("{{.Name}}")
+	data, exists := c.Get("{{.LowerCase}}")
 	if !exists {
-		response.NotFound(c, "Not found", nil, "[Get{{.CamelCase}}ByID]")
+		response.NotFound(c, "{{.Name}} not found", nil, "[Get{{.CamelCase}}ByID]")
 		return
 	}
 
-	response.Success(c, "Get {{.Name}} by ID", data)
+	response.Success(c, "{{.Name}} retrieved successfully", data)
 }
 
 // Create{{.CamelCase}} creates a new {{.Name}}.
 func (ctl *{{.CamelCase}}Controller) Create{{.CamelCase}}(c *gin.Context) {
-	// TODO: validate input
-	// TODO: sanitize input
-	// TODO: save to database
+	// TODO: Use your request struct and validate
+	// var req requests.{{.CamelCase}}Request
+	// if !req.Validate(c) {
+	//     return
+	// }
 
-	response.Created(c, "Create {{.Name}}", nil)
+	// TODO: Process the validated data
+	// - Save to database
+	// - Call service layer
+
+	response.Created(c, "{{.Name}} created successfully", nil)
 }
 
 // Update{{.CamelCase}} updates an existing {{.Name}}.
 func (ctl *{{.CamelCase}}Controller) Update{{.CamelCase}}(c *gin.Context) {
-	// TODO: validate input
-	// TODO: sanitize input
-	// TODO: update in database
+	// Get ID from URL parameter
+	idStr := c.Param("id")
+	id, err := strconv.ParseUint(idStr, 10, 32)
+	if err != nil {
+		response.BadRequest(c, "Invalid ID format", err, "[Update{{.CamelCase}}]")
+		return
+	}
 
-	response.Success(c, "Update {{.Name}}", nil)
+	// TODO: Use your request struct and validate
+	// var req requests.{{.CamelCase}}UpdateRequest
+	// if !req.Validate(c) {
+	//     return
+	// }
+
+	// TODO: Process the validated data
+	// - Check if record exists
+	// - Update in database
+	_ = id // Use the ID for database operations
+
+	response.Success(c, "{{.Name}} updated successfully", nil)
 }
 
 // Delete{{.CamelCase}} deletes a {{.Name}}.
 func (ctl *{{.CamelCase}}Controller) Delete{{.CamelCase}}(c *gin.Context) {
-	// TODO: validate input
-	// TODO: delete from database
+	// Get ID from URL parameter
+	idStr := c.Param("id")
+	id, err := strconv.ParseUint(idStr, 10, 32)
+	if err != nil {
+		response.BadRequest(c, "Invalid ID format", err, "[Delete{{.CamelCase}}]")
+		return
+	}
 
-	response.Success(c, "Delete {{.Name}}", nil)
+	// TODO: Process the deletion
+	// Example:
+	// - Check if record exists
+	// - Check if safe to delete (no foreign key constraints)
+	// - Delete from database
+	// - Handle business logic
+	_ = id // Use the ID for database operations
+
+	response.Success(c, "{{.Name}} deleted successfully", nil)
 }
 `
 

@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"response-std/config"
-	"response-std/core/models/requests"
+	"response-std/core/requests"
 	"response-std/core/services/hooks"
 
 	"github.com/sirupsen/logrus"

@@ -9,8 +9,8 @@ import (
 	"time"
 
 	"response-std/config"
-	"response-std/core/models/requests"
 	"response-std/core/models/responses"
+	"response-std/core/requests"
 
 	"github.com/go-resty/resty/v2"
 	"github.com/google/uuid"

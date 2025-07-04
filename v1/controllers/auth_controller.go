@@ -1,3 +1,4 @@
+// v1/controllers/auth_controller.go
 package controllers
 
 import (
@@ -11,6 +12,7 @@ import (
 	"response-std/core/helper"
 	"response-std/core/models/entities"
 	"response-std/core/response"
+	"response-std/v1/requests/auth"
 
 	"github.com/gin-gonic/gin"
 	"golang.org/x/crypto/bcrypt"
@@ -30,19 +32,15 @@ func NewAuthController() *AuthController {
 // ---------------------------
 func (a *AuthController) Login(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		var input struct {
-			Username string `json:"username" binding:"required"` // Changed from email to username
-			Password string `json:"password" binding:"required"`
-		}
-
-		if err := c.ShouldBindJSON(&input); err != nil {
-			response.UnprocessableEntity(c, "Invalid credentials", err, "[Login]")
-			return
+		// Validate request using LoginRequest
+		var loginReq auth.LoginRequest
+		if !loginReq.Validate(c) {
+			return // Response sudah di-handle di dalam Validate()
 		}
 
 		// Determine if username is email or name (same logic as Laravel)
 		var loginField string
-		if strings.Contains(input.Username, "@") {
+		if strings.Contains(loginReq.Username, "@") {
 			loginField = "email"
 		} else {
 			loginField = "name"
@@ -50,14 +48,14 @@ func (a *AuthController) Login(db *gorm.DB) gin.HandlerFunc {
 
 		var user entities.User
 		err := db.Preload("Roles.Permissions").Preload("Permissions").
-			Where(loginField+" = ?", input.Username).First(&user).Error
+			Where(loginField+" = ?", loginReq.Username).First(&user).Error
 
 		if err != nil {
 			response.UnprocessableEntity(c, "Invalid credentials", err, "[Login]")
 			return
 		}
 
-		if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(input.Password)); err != nil {
+		if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(loginReq.Password)); err != nil {
 			response.UnprocessableEntity(c, "Invalid credentials", err, "[Login]")
 			return
 		}
@@ -90,7 +88,6 @@ func (a *AuthController) Login(db *gorm.DB) gin.HandlerFunc {
 		})
 
 		if err != nil {
-			// log.Printf("Error creating token: %v", err)
 			response.InternalServerError(c, "Failed to create token", err, "[Login]")
 			return
 		}
@@ -147,7 +144,6 @@ func (a *AuthController) Logout(db *gorm.DB) gin.HandlerFunc {
 
 		// Hapus token dari database
 		if err := db.Delete(&token).Error; err != nil {
-			// log.Printf("Error deleting token: %v", err)
 			response.InternalServerError(c, "Failed to logout", err, "[Logout]")
 			return
 		}
@@ -161,26 +157,15 @@ func (a *AuthController) Logout(db *gorm.DB) gin.HandlerFunc {
 // ---------------------------
 func (a *AuthController) Register(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		var input struct {
-			Name                 string `json:"name" binding:"required"`
-			Email                string `json:"email" binding:"required,email"`
-			Password             string `json:"password" binding:"required,min=8"`
-			PasswordConfirmation string `json:"password_confirmation" binding:"required"`
-		}
-
-		if err := c.ShouldBindJSON(&input); err != nil {
-			response.BadRequest(c, "Data tidak valid", err, "[Register]")
-			return
-		}
-
-		if input.Password != input.PasswordConfirmation {
-			response.UnprocessableEntity(c, "Password dan konfirmasi password tidak cocok", nil, "[Register]")
-			return
+		// Validate request using RegisterRequest
+		var registerReq auth.RegisterRequest
+		if !registerReq.Validate(c) {
+			return // Response sudah di-handle di dalam Validate()
 		}
 
 		// Cek apakah email sudah digunakan
 		var count int64
-		db.Model(&entities.User{}).Where("email = ?", input.Email).Count(&count)
+		db.Model(&entities.User{}).Where("email = ?", registerReq.Email).Count(&count)
 		if count > 0 {
 			response.UnprocessableEntity(c, "Email sudah digunakan", nil, "[Register]")
 			return
@@ -188,28 +173,24 @@ func (a *AuthController) Register(db *gorm.DB) gin.HandlerFunc {
 
 		// Hash password menggunakan bcrypt (sama seperti Laravel)
 		// Laravel default menggunakan cost 12, tapi 10-12 sudah cukup aman
-		hashedPassword, err := bcrypt.GenerateFromPassword([]byte(input.Password), 12)
+		hashedPassword, err := bcrypt.GenerateFromPassword([]byte(registerReq.Password), 12)
 		if err != nil {
-			// log.Printf("Error hashing password: %v", err)
 			response.InternalServerError(c, "Gagal memproses password", err, "[Register]")
 			return
 		}
 
 		user := entities.User{
-			Name:     input.Name,
-			Email:    input.Email,
+			Name:     registerReq.Name,
+			Email:    registerReq.Email,
 			Password: string(hashedPassword), // Simpan password yang sudah di-hash
 		}
 
 		if err := db.Create(&user).Error; err != nil {
-			// log.Printf("Error creating user: %v", err)
 			response.UnprocessableEntity(c, "Gagal mendaftar", err, "[Register]")
 			return
 		}
 
-		response.Created(c, "Register berhasil", gin.H{
-			"message": "Akun berhasil dibuat, silakan login",
-		})
+		response.Created(c, "Akun berhasil didaftarkan, silahkan login!", nil)
 	}
 }
 

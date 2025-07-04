@@ -1,3 +1,4 @@
+// service/hooks/discord.go
 package hooks
 
 import (
@@ -50,8 +51,13 @@ func NewDiscordHook(webhookURL, appName string, minLevel logrus.Level) *DiscordH
 	}
 }
 
+// FIX: Logika Levels() untuk menangani level yang lebih tinggi dari MinLevel
 func (hook *DiscordHook) Levels() []logrus.Level {
 	var levels []logrus.Level
+
+	// Hanya log level yang >= MinLevel yang akan dikirim ke Discord
+	// Urutan level: PanicLevel (0) > FatalLevel (1) > ErrorLevel (2) > WarnLevel (3) > InfoLevel (4) > DebugLevel (5)
+	// Semakin kecil angka, semakin tinggi prioritas
 	for _, level := range logrus.AllLevels {
 		if level <= hook.MinLevel {
 			levels = append(levels, level)
@@ -63,6 +69,12 @@ func (hook *DiscordHook) Levels() []logrus.Level {
 func (hook *DiscordHook) Fire(entry *logrus.Entry) error {
 	// Skip if webhook URL is empty
 	if hook.WebhookURL == "" {
+		return nil
+	}
+
+	// FIX: Tambahkan pengecekan level di Fire method juga untuk memastikan
+	// Karena logrus level semakin kecil nilainya semakin tinggi prioritas
+	if entry.Level > hook.MinLevel {
 		return nil
 	}
 
@@ -141,6 +153,7 @@ func (hook *DiscordHook) getColorForLevel(level logrus.Level) int {
 func (hook *DiscordHook) sendToDiscord(payload DiscordPayload) {
 	jsonData, err := json.Marshal(payload)
 	if err != nil {
+		fmt.Printf("Error marshaling Discord payload: %v\n", err)
 		return
 	}
 
@@ -150,9 +163,14 @@ func (hook *DiscordHook) sendToDiscord(payload DiscordPayload) {
 
 	resp, err := client.Post(hook.WebhookURL, "application/json", bytes.NewBuffer(jsonData))
 	if err != nil {
+		fmt.Printf("Error sending to Discord: %v\n", err)
 		return
 	}
 	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusNoContent {
+		fmt.Printf("Discord webhook returned status: %d\n", resp.StatusCode)
+	}
 }
 
 // Helper function to parse log level from string
@@ -174,8 +192,6 @@ func ParseLogLevel(level string) logrus.Level {
 		return logrus.ErrorLevel
 	}
 }
-
-
 
 // manually send log to discord
 func SendDiscordMessage(webhookURL, appName, level, message string, data map[string]interface{}) error {
@@ -235,6 +251,11 @@ func sendToWebhook(webhookURL string, payload DiscordPayload) error {
 		return err
 	}
 	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusNoContent {
+		return fmt.Errorf("discord webhook returned status: %d", resp.StatusCode)
+	}
+
 	return nil
 }
 

@@ -4,6 +4,7 @@ import (
 	"response-std/config"
 	"response-std/core/router"
 	"response-std/core/services"
+	"response-std/core/services/hooks"
 
 	"github.com/gin-gonic/gin"
 )
@@ -31,10 +32,22 @@ func main() {
 	}
 
 	log.Info("Starting API Service", map[string]interface{}{
-		"APP_PORT":    config.ENV.APP_PORT,
-		"environment": config.ENV.Environment,
-		"log_level":   config.ENV.LogLevel,
+		"APP_PORT":       config.ENV.APP_PORT,
+		"environment":    config.ENV.Environment,
+		"log_level":      config.ENV.LogLevel,
+		"version_active": config.ENV.API_VERSION,
 	})
+	hooks.SendDiscordMessage(
+		config.ENV.DiscordWebhookURL,
+		config.ENV.APP_NAME,
+		config.ENV.LogLevel,
+		"Service started!",
+		map[string]interface{}{
+			"APP_PORT":       config.ENV.APP_PORT,
+			"environment":    config.ENV.Environment,
+			"version_active": config.ENV.API_VERSION,
+		},
+	)
 
 	// Send logs to Discord
 	// dcLogs()

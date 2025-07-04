@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+	"os"
 	"strings"
 	"time"
 
@@ -75,37 +76,97 @@ func InitConfig() {
 }
 
 // Helper methods for log channel configuration
-func (c *Config) IsDiscordLoggingEnabled() bool {
-	return (c.LogChannel == "discord" || c.LogChannel == "both") && c.DiscordWebhookURL != ""
-}
-
+// IsFileLoggingEnabled checks if file logging is enabled
 func (c *Config) IsFileLoggingEnabled() bool {
-	return (c.LogChannel == "file" || c.LogChannel == "both") && c.LogToFile
+	// First check the config struct value
+	if c.LogToFile {
+		return true
+	}
+
+	// Then check environment variables
+	logChannel := strings.ToLower(c.LogChannel)
+	logToFile := strings.ToLower(os.Getenv("LOG_TO_FILE"))
+
+	// File logging is enabled if:
+	// 1. LOG_CHANNEL contains "file" or "both"
+	// 2. LOG_TO_FILE is "true"
+	return strings.Contains(logChannel, "file") ||
+		strings.Contains(logChannel, "both") ||
+		logToFile == "true"
 }
 
-func (c *Config) ShouldLogToDiscord(logLevel string) bool {
+// IsDiscordLoggingEnabled checks if Discord logging is enabled
+func (c *Config) IsDiscordLoggingEnabled() bool {
+	// First check the config struct value
+	if c.DiscordWebhookURL == "" {
+		return false
+	}
+
+	// Then check environment variables
+	logChannel := strings.ToLower(c.LogChannel)
+
+	// Discord logging is enabled if:
+	// 1. LOG_CHANNEL contains "discord" or "both"
+	// 2. DISCORD_WEBHOOK_URL is not empty
+	return (strings.Contains(logChannel, "discord") ||
+		strings.Contains(logChannel, "both")) &&
+		c.DiscordWebhookURL != ""
+}
+
+// ShouldLogToDiscord checks if a specific log level should be sent to Discord
+func (c *Config) ShouldLogToDiscord(level string) bool {
 	if !c.IsDiscordLoggingEnabled() {
 		return false
 	}
 
-	// Define log level hierarchy
-	levels := map[string]int{
+	// Parse minimum level for Discord
+	minLevel := strings.ToLower(c.DiscordMinLogLevel)
+	if minLevel == "" {
+		minLevel = "error" // default
+	}
+
+	currentLevel := strings.ToLower(level)
+
+	// Level hierarchy: debug < info < warn < error < critical/fatal
+	levelPriority := map[string]int{
 		"debug":    1,
 		"info":     2,
 		"warn":     3,
+		"warning":  3,
 		"error":    4,
 		"critical": 5,
+		"fatal":    5,
+		"panic":    5,
 	}
 
-	minLevel, exists := levels[strings.ToLower(c.DiscordMinLogLevel)]
-	if !exists {
-		minLevel = 4 // default to error
+	minPriority := levelPriority[minLevel]
+	currentPriority := levelPriority[currentLevel]
+
+	return currentPriority >= minPriority
+}
+
+// GetLogLevel returns the general log level for file logging
+func (c *Config) GetLogLevel() string {
+	if c.LogLevel != "" {
+		return c.LogLevel
 	}
 
-	currentLevel, exists := levels[strings.ToLower(logLevel)]
-	if !exists {
-		return false
+	logLevel := os.Getenv("LOG_LEVEL")
+	if logLevel == "" {
+		return "info" // default
+	}
+	return logLevel
+}
+
+// GetDiscordMinLogLevel returns the minimum log level for Discord notifications
+func (c *Config) GetDiscordMinLogLevel() string {
+	if c.DiscordMinLogLevel != "" {
+		return c.DiscordMinLogLevel
 	}
 
-	return currentLevel >= minLevel
+	level := os.Getenv("DISCORD_MIN_LOG_LEVEL")
+	if level == "" {
+		return "error" // default
+	}
+	return level
 }

@@ -1,3 +1,4 @@
+// service/logger.go
 package services
 
 import (
@@ -23,7 +24,7 @@ var AppLogger *Logger
 func NewLogger(logLevel, environment string) *Logger {
 	logger := logrus.New()
 
-	// Set log level
+	// Set log level - ini untuk logger utama (file logging)
 	level, err := logrus.ParseLevel(logLevel)
 	if err != nil {
 		level = logrus.InfoLevel
@@ -45,7 +46,7 @@ func NewLogger(logLevel, environment string) *Logger {
 	// Configure output based on LOG_CHANNEL setting
 	outputs := []io.Writer{}
 
-	// File logging
+	// File logging - jika aktif, semua log level akan masuk ke file
 	if config.ENV.IsFileLoggingEnabled() {
 		fileOutput := setupFileLogging(environment)
 		if fileOutput != nil {
@@ -66,12 +67,13 @@ func NewLogger(logLevel, environment string) *Logger {
 	}
 
 	// Add Discord hook if enabled
+	// Discord hook menggunakan level terpisah dari DISCORD_MIN_LOG_LEVEL
 	if config.ENV.IsDiscordLoggingEnabled() {
-		minLevel := hooks.ParseLogLevel(config.ENV.DiscordMinLogLevel)
+		discordMinLevel := hooks.ParseLogLevel(config.ENV.DiscordMinLogLevel)
 		discordHook := hooks.NewDiscordHook(
 			config.ENV.DiscordWebhookURL,
 			config.ENV.APP_NAME,
-			minLevel,
+			discordMinLevel, // Ini level minimum untuk Discord
 		)
 		logger.AddHook(discordHook)
 	}
@@ -88,6 +90,7 @@ func setupFileLogging(environment string) io.Writer {
 
 	if _, err := os.Stat(logsDir); os.IsNotExist(err) {
 		if err := os.MkdirAll(logsDir, 0755); err != nil {
+			fmt.Printf("Error creating logs directory: %v\n", err)
 			return nil
 		}
 	}
@@ -106,6 +109,7 @@ func setupFileLogging(environment string) io.Writer {
 	logFile := filepath.Join(logsDir, logFileName)
 	file, err := os.OpenFile(logFile, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
 	if err != nil {
+		fmt.Printf("Error opening log file: %v\n", err)
 		return nil
 	}
 
@@ -123,11 +127,13 @@ func (l *Logger) LogRequest(requestLog *requests.RequestLog) {
 		"retries":     requestLog.Retries,
 	}
 
-	// Log to Discord only for errors (status code >= 400)
-	if config.ENV.ShouldLogToDiscord("info") && requestLog.StatusCode >= 400 {
-		l.logger.WithFields(fields).Error("API Request Error")
+	// Log request - level ditentukan berdasarkan status code
+	if requestLog.StatusCode >= 500 {
+		l.logger.WithFields(fields).Error("API Request - Server Error")
+	} else if requestLog.StatusCode >= 400 {
+		l.logger.WithFields(fields).Warn("API Request - Client Error")
 	} else {
-		l.logger.WithFields(fields).Info("API Request")
+		l.logger.WithFields(fields).Info("API Request - Success")
 	}
 }
 
@@ -169,5 +175,5 @@ func (l *Logger) Critical(message string, err error, fields map[string]interface
 	if err != nil {
 		fields["error"] = err.Error()
 	}
-	l.logger.WithFields(fields).Fatal(message)
+	l.logger.WithFields(fields).Error("[CRITICAL] " + message)
 }

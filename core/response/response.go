@@ -7,7 +7,11 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-var log = services.AppLogger
+var log *services.Logger
+
+func InitLogger() {
+	log = services.NewLogger(config.ENV.LogLevel, config.ENV.Environment)
+}
 
 type Response struct {
 	Status  string `json:"status"`

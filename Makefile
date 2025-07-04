@@ -7,17 +7,25 @@ build:
 test:
 	go test ./...
 
+# ================================================================================
+
 # make models
 model:
 	@echo "Generating models... $(name) (version: $(ver))"
 	go run cmd/scripts/models/generate_models.go $(name) $(ver)
 #usage: make models name=users ver=v1
 
+# ================================================================================
+
+
 # make controllers
 controller:
 	@echo "Generating controllers... $(name) (version: $(ver))"
 	go run cmd/scripts/controllers/generate_controllers.go $(name) $(ver)
 #usage: make controllers name=users ver=v1
+
+
+# ================================================================================
 
 # migrate using golang-migrate/migrate driver mysql
 # default version fallback = v1
@@ -30,6 +38,9 @@ create:
 	@mkdir -p $(MIGRATIONS_DIR)
 	$(MIGRATION_TOOL) create -ext sql -dir $(MIGRATIONS_DIR) $(migration)
 #usage: make create migration=create_users_table ver=v2
+
+# ================================================================================
+
 
 # command aliases for migrations
 migrate-up:
@@ -47,8 +58,11 @@ migrate-drop:
 migrate-force:
 	@echo "⚙️ Forcing migration version $(VERSION) on $(ver)..."
 	go run cmd/migrate/migrate.go force $(ver) $(VERSION)
-#all migrate usage: make migrate-up/migrate-down/migrate-drop then version
+#all migrate usage: make migrate-up/migrate-down/migrate-drop then version(ver=v1)
 #example: make migrate-up ver=v2
+
+# ================================================================================
+
 
 db-seed:
 	go run cmd/seed/seed.go

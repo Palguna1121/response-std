@@ -6,6 +6,11 @@ import (
 	"response-std/core/services"
 	"response-std/core/services/hooks"
 
+	//init routes
+	_ "response-std/v1/routes"
+	_ "response-std/v2/routes"
+	_ "response-std/web/routes"
+
 	"github.com/gin-gonic/gin"
 )
 
@@ -57,37 +62,3 @@ func main() {
 		panic("Failed to run server: " + err.Error())
 	}
 }
-
-// func dcLogs() {
-// 	colors := []struct {
-// 		level string
-// 		color int
-// 	}{
-// 		{"fatal", 0xFF0000},
-// 		{"panic", 0xFF0000},
-// 		{"error", 0xFF6B6B},
-// 		{"warn", 0xFFB347},
-// 		{"warning", 0xFFB347},
-// 		{"info", 0x4ECDC4},
-// 		{"debug", 0x95A5A6},
-// 	}
-
-// 	for _, c := range colors {
-// 		errdc := hooks.SendDiscordMessage(
-// 			config.ENV.DiscordWebhookURL,
-// 			"MyApp",
-// 			c.level,
-// 			"🚨 Terjadi kesalahan saat proses pembayaran",
-// 			map[string]interface{}{
-// 				"user_id": 1023,
-// 				"order":   "#A202406",
-// 				"error":   "Timeout saat koneksi ke server pembayaran",
-// 			},
-// 		)
-
-// 		if errdc != nil {
-// 			// fallback jika ingin log ke file atau stdout
-// 			println("Gagal mengirim log ke Discord dengan level", c.level, ":", errdc.Error())
-// 		}
-// 	}
-// }

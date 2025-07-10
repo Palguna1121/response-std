@@ -1,6 +1,10 @@
 package routes
 
-import "github.com/gin-gonic/gin"
+import (
+	"response-std/core/router"
+
+	"github.com/gin-gonic/gin"
+)
 
 func SetupRoutes(r *gin.Engine) {
 	// Semua routing v2
@@ -8,4 +12,8 @@ func SetupRoutes(r *gin.Engine) {
 	api.GET("/hello", func(c *gin.Context) {
 		c.JSON(200, gin.H{"message": "Hello from V2"})
 	})
+}
+
+func init() {
+	router.Register("v2", SetupRoutes)
 }

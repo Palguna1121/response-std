@@ -4,6 +4,7 @@ import (
 	"response-std/config"
 	"response-std/core/handlers"
 	"response-std/core/middleware"
+	"response-std/core/router"
 	"response-std/core/services"
 	"response-std/v1/controllers"
 
@@ -78,4 +79,8 @@ func SetupRoutes(r *gin.Engine) {
 			}
 		}
 	}
+}
+
+func init() {
+	router.Register("v1", SetupRoutes)
 }

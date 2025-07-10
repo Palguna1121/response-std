@@ -2,21 +2,19 @@ package main
 
 import (
 	"response-std/config"
-	"response-std/core/router"
-	"response-std/core/services"
-	"response-std/core/services/hooks"
+	"response-std/libs/external/services"
+	"response-std/libs/external/services/hooks"
+	"response-std/libs/router"
 
 	//init routes
-	_ "response-std/v1/routes"
-	_ "response-std/v2/routes"
-	_ "response-std/web/routes"
+	_ "response-std/routes"
 
 	"github.com/gin-gonic/gin"
 )
 
 func main() {
 	config.InitConfig()
-	config.LoadDB()
+	config.LoadDBMysql()
 	// Initialize logger
 	services.AppLogger = services.NewLogger(config.ENV.LogLevel, config.ENV.Environment)
 

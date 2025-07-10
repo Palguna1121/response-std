@@ -5,4 +5,4 @@ go.sum
 *.exe
 *.exe~
 
-/logs/*
+/storage/logs/*

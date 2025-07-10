@@ -17,15 +17,15 @@ install:
 
 # generate models
 model:
-	@echo "Generating models... $(name) (version: $(ver))"
-	go run cmd/scripts/models/generate_models.go $(name) $(ver)
-#usage: make models name=users ver=v1
+	@echo "Generating models... $(name)"
+	go run app/console/cmd/scripts/models/generate_models.go $(name)
+#usage: make models name=users
 
 #required migration: table for automation of model generation
 
 #example:  
-#	command: "make models name=users ver=v1" 
-#		it will generate models from migration v1/migrations/create_users_table.up.sql
+#	command: "make models name=users" 
+#		it will generate models from migration database/migrations/create_users_table.up.sql
 # 		thats why this command requires migration first
 
 # ================================================================================
@@ -36,7 +36,7 @@ model:
 # generate controllers
 controller:
 	@echo "Generating controllers... $(name) (version: $(ver))"
-	go run cmd/scripts/controllers/generate_controllers.go $(name) $(ver)
+	go run app/console/cmd/scripts/controllers/generate_controllers.go $(name) $(ver)
 #usage: make controllers name=users ver=v1
 
 
@@ -47,7 +47,7 @@ controller:
 # Generate requests
 request:
 	@echo "Generating requests... $(name) (version: $(ver))"
-	go run cmd/scripts/requests/generate_requests.go $(name) $(ver)
+	go run app/console/cmd/scripts/requests/generate_requests.go $(name) $(ver)
 # usage: make requests name=user_store ver=v1
 
 # ================================================================================
@@ -57,7 +57,7 @@ request:
 # Generate all: models, controller and request
 scaffold:
 	@echo "Generating scaffold... $(name) (version: $(ver))"
-	make model name=$(name) ver=$(ver)
+	make model name=$(name)
 	make controller name=$(name) ver=$(ver)
 	make request name=$(name)_store ver=$(ver)
 	make request name=$(name)_update ver=$(ver)
@@ -70,8 +70,8 @@ scaffold:
 # Generate all: models, controller and request
 scaffolds:
 	@echo "Generating scaffold... $(name) (version: $(ver))"
-	make create migration=create_$(name)_table ver=$(ver)
-	make model name=$(name) ver=$(ver)
+	make create migration=create_$(name)_table
+	make model name=$(name)
 	make controller name=$(name) ver=$(ver)
 	make request name=$(name)_store ver=$(ver)
 	make request name=$(name)_update ver=$(ver)
@@ -82,16 +82,14 @@ scaffolds:
 # ================================================================================
 
 # migrate using golang-migrate/migrate driver mysql
-# default version fallback = v1
-ver ?= v1
 MIGRATION_TOOL = migrate
-MIGRATIONS_DIR = $(ver)/database/migrations
+MIGRATIONS_DIR = database/migrations
 
 create:
 	@echo "📝 Creating migration: $(migration) in $(MIGRATIONS_DIR)"
 	@mkdir -p $(MIGRATIONS_DIR)
 	$(MIGRATION_TOOL) create -ext sql -dir $(MIGRATIONS_DIR) $(migration)
-#usage: make create migration=create_users_table ver=v2
+#usage: make create migration=create_users_table
 
 # ================================================================================
 # ================================================================================
@@ -100,22 +98,32 @@ create:
 
 # command aliases for migrations
 migrate-up:
-	@echo "🔼 Running migration UP for version $(ver)..."
-	go run cmd/migrate/migrate.go up $(ver)
+	@echo "🔼 Running migration UP for version..."
+	go run app/console/cmd/migrate/migrate.go up
 
 migrate-down:
-	@echo "🔽 Running migration DOWN for version $(ver)..."
-	go run cmd/migrate/migrate.go down $(ver)
+	@echo "🔽 Running migration DOWN for version..."
+	go run app/console/cmd/migrate/migrate.go down
 
 migrate-drop:
-	@echo "💥 Dropping database for version $(ver)..."
-	go run cmd/migrate/migrate.go drop $(ver)
+	@echo "💥 Dropping database for version..."
+	go run app/console/cmd/migrate/migrate.go drop
 
 migrate-force:
-	@echo "⚙️ Forcing migration version $(VERSION) on $(ver)..."
-	go run cmd/migrate/migrate.go force $(ver) $(VERSION)
-#all migrate usage: make migrate-up/migrate-down/migrate-drop then version(ver=v1)
-#example: make migrate-up ver=v2
+	@echo "⚙️ Forcing migration version on..."
+	go run app/console/cmd/migrate/migrate.go force
+#all migrate usage: make migrate-up/migrate-down/migrate-drop
+#example: make migrate-up
+
+
+# ================================================================================
+# USING MIGRATE AND MODEL AT THE SAME TIME
+# ================================================================================
+# migrate and model
+migrate-m:
+	@echo "Running migration and generating models..."
+# todo: run create migration and generate model
+
 
 # ================================================================================
 # ================================================================================
@@ -123,5 +131,5 @@ migrate-force:
 
 
 db-seed:
-	go run cmd/seed/seed.go
+	go run app/console/cmd/seed/seed.go
 #usage: make db-seed

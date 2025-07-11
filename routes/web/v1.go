@@ -31,6 +31,5 @@ func SetupWebRoutes(r *gin.Engine) {
 		user.POST("/", userController.CreateUser)
 		user.PUT("/:id/update", userController.UpdateUser)
 		user.DELETE("/:id/delete", userController.DeleteUser)
-
 	}
 }

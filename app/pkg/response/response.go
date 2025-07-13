@@ -120,6 +120,20 @@ func UnprocessableEntity(c *gin.Context, message string, err error, logPrefix ..
 	Error(c, 422, message, err, getLogPrefix(logPrefix, "Unprocessable Entity"), "warn")
 }
 
+func UnprocessableValidation(c *gin.Context, message string, err error, errInterface map[string]interface{}, logPrefix ...string) {
+	validationErrorRespond(c, message, errInterface)
+	if log != nil {
+		log.Warn(message, map[string]interface{}{
+			"error":      err,
+			"message":    errInterface,
+			"request":    c.Request.URL.Path,
+			"method":     c.Request.Method,
+			"client_ip":  c.ClientIP(),
+			"log_prefix": getLogPrefix(logPrefix, "Unprocessable Entity"),
+		})
+	}
+}
+
 func Conflict(c *gin.Context, message string, err error, logPrefix ...string) {
 	Error(c, 409, message, err, getLogPrefix(logPrefix, "Conflict"), "warn")
 }
@@ -154,4 +168,23 @@ func getLogPrefix(logPrefix []string, defaultValue string) string {
 		return logPrefix[0]
 	}
 	return defaultValue
+}
+
+// ValidationErrorResponse is a custom error response for validation errors
+type ErrorResponse struct {
+	Status  string                 `json:"status"`
+	Code    int                    `json:"code"`
+	Message string                 `json:"message"`
+	Error   map[string]interface{} `json:"error"`
+}
+
+func validationErrorRespond(c *gin.Context, message string, err map[string]interface{}) {
+	response := ErrorResponse{
+		Status:  "error",
+		Code:    422,
+		Message: message,
+		Error:   err,
+	}
+
+	c.JSON(422, response)
 }

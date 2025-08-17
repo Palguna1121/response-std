@@ -98,31 +98,22 @@ create:
 
 # command aliases for migrations
 migrate-up:
-	@echo "🔼 Running migration UP for version..."
+	@echo "🔼 Running migration UP..."
 	go run app/console/cmd/migrate/migrate.go up
 
 migrate-down:
-	@echo "🔽 Running migration DOWN for version..."
+	@echo "🔽 Running migration DOWN..."
 	go run app/console/cmd/migrate/migrate.go down
 
 migrate-drop:
-	@echo "💥 Dropping database for version..."
+	@echo "💥 Dropping database..."
 	go run app/console/cmd/migrate/migrate.go drop
 
 migrate-force:
-	@echo "⚙️ Forcing migration version on..."
+	@echo "⚙️ Forcing migration..."
 	go run app/console/cmd/migrate/migrate.go force
 #all migrate usage: make migrate-up/migrate-down/migrate-drop
 #example: make migrate-up
-
-
-# ================================================================================
-# USING MIGRATE AND MODEL AT THE SAME TIME
-# ================================================================================
-# migrate and model
-migrate-m:
-	@echo "Running migration and generating models..."
-# todo: run create migration and generate model
 
 
 # ================================================================================
@@ -131,5 +122,21 @@ migrate-m:
 
 
 db-seed:
-	go run app/console/cmd/seed/seed.go
+	go run app/console/cmd/scripts/seed/run.go
 #usage: make db-seed
+
+seeder:
+	@echo "Generating Seeder... $(name)"
+	go run app/console/cmd/scripts/seed/generate/generate_seeder.go $(name)
+
+
+fresh-seed:
+	@echo "Running fresh migration and seeding database..."
+	make migrate-down
+	make migrate-up
+	make db-seed
+
+migrate-up-seed:
+	@echo "Running migration UP and seeding database..."
+	make migrate-up
+	make db-seed

@@ -5,15 +5,18 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
+	"log"
 	"math/rand"
 	"strings"
 	"time"
 
 	"response-std/app/helpers/helper"
-	"response-std/app/pkg/response"
 	"response-std/app/http/requests/auth"
 	"response-std/app/models/entities"
+	"response-std/app/pkg/permissions"
+	"response-std/app/pkg/response"
 
+	"github.com/davecgh/go-spew/spew"
 	"github.com/gin-gonic/gin"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
@@ -32,10 +35,21 @@ func NewAuthController() *AuthController {
 // ---------------------------
 func (a *AuthController) Login(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
+		if db == nil {
+			response.InternalServerError(c, "Database connection is not initialized", nil, "[Login]")
+			return
+		}
 		// Validate request using LoginRequest
 		var loginReq auth.LoginRequest
+		// BIND JSON DULU
+		if err := c.ShouldBindJSON(&loginReq); err != nil {
+			response.BadRequest(c, "Invalid request format", err, "[Login]")
+			return
+		}
+
+		// VALIDATE
 		if !loginReq.Validate(c) {
-			return // Response sudah di-handle di dalam Validate()
+			return
 		}
 
 		// Determine if username is email or name (same logic as Laravel)
@@ -155,10 +169,17 @@ func (a *AuthController) Logout(db *gorm.DB) gin.HandlerFunc {
 // ---------------------------
 // REGISTER
 // ---------------------------
-func (a *AuthController) Register(db *gorm.DB) gin.HandlerFunc {
+func (a *AuthController) Register(db *gorm.DB, spatie *permissions.Spatie) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// Validate request using RegisterRequest
 		var registerReq auth.RegisterRequest
+		// BIND JSON DULU
+		if err := c.ShouldBindJSON(&registerReq); err != nil {
+			response.BadRequest(c, "Invalid request format", err, "[Register]")
+			return
+		}
+		// VALIDATE
+		// Gunakan method Validate dari RegisterRequest
 		if !registerReq.Validate(c) {
 			return // Response sudah di-handle di dalam Validate()
 		}
@@ -190,6 +211,12 @@ func (a *AuthController) Register(db *gorm.DB) gin.HandlerFunc {
 			return
 		}
 
+		// assign default role (misal: user)
+		defaultRole := "user"
+		if err := spatie.AssignRole(user.ID, defaultRole); err != nil {
+			log.Printf("Failed to assign role %s to %s: %v", defaultRole, user.Name, err)
+		}
+
 		response.Created(c, "Akun berhasil didaftarkan, silahkan login!", nil)
 	}
 }
@@ -197,7 +224,7 @@ func (a *AuthController) Register(db *gorm.DB) gin.HandlerFunc {
 // ---------------------------
 // PROFILE / ME
 // ---------------------------
-func (a *AuthController) Me(c *gin.Context) {
+func (a *AuthController) Me(c *gin.Context, spatie *permissions.Spatie) {
 	user, exists := c.Get("user")
 	if !exists {
 		response.Unauthorized(c, "Unauthenticated", nil, "[Me]")
@@ -210,11 +237,25 @@ func (a *AuthController) Me(c *gin.Context) {
 		return
 	}
 
+	userRoles, err := spatie.GetUserRoles(u.ID)
+	if err != nil {
+		spew.Dump("apa nih", err)
+		data := gin.H{
+			"id":    u.ID,
+			"name":  u.Name,
+			"email": u.Email,
+			"roles": u.Roles, // Tambahkan roles jika dibutuhkan
+		}
+
+		response.Success(c, "User fetched!", data)
+		return
+	}
+
 	data := gin.H{
 		"id":    u.ID,
 		"name":  u.Name,
 		"email": u.Email,
-		"roles": u.Roles, // Tambahkan roles jika dibutuhkan
+		"roles": userRoles, // Tambahkan roles jika dibutuhkan
 	}
 
 	response.Success(c, "User fetched!", data)

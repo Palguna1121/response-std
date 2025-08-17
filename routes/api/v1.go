@@ -3,9 +3,12 @@ package api
 import (
 	"response-std/app/http/controllers"
 	"response-std/app/http/middleware"
+	"response-std/app/pkg/permissions"
 	"response-std/config"
 	"response-std/libs/external/handlers"
 	"response-std/libs/external/services"
+
+	"github.com/Palguna1121/goupload"
 
 	"github.com/gin-gonic/gin"
 )
@@ -25,6 +28,9 @@ func SetupRoutesv1(r *gin.Engine) {
 	r.Use(middleware.LoggingMiddleware(logger))
 	r.Use(middleware.ErrorHandlingMiddleware(logger))
 	r.Use(middleware.RateLimitMiddleware())
+
+	// register upload routes
+	registerUploadRoutes(r)
 
 	// Root endpoint
 	r.GET("/", func(c *gin.Context) {
@@ -49,7 +55,7 @@ func SetupRoutesv1(r *gin.Engine) {
 		auth := api.Group("/auth")
 		{
 			auth.POST("/login", authController.Login(config.DB))
-			auth.POST("/register", authController.Register(config.DB))
+			auth.POST("/register", authController.Register(config.DB, permissions.NewSpatie(config.DB)))
 		}
 
 		// Protected routes (require authentication)
@@ -59,7 +65,9 @@ func SetupRoutesv1(r *gin.Engine) {
 			// Auth endpoints
 			protected.POST("/auth/logout", authController.Logout(config.DB))
 			protected.POST("/auth/refresh", authController.RefreshToken(config.DB))
-			protected.GET("/auth/me", authController.Me)
+			protected.GET("/auth/me", func(c *gin.Context) {
+				authController.Me(c, permissions.NewSpatie(config.DB))
+			})
 
 			// Admin routes (require admin role)
 			admin := protected.Group("/admin")
@@ -78,4 +86,20 @@ func SetupRoutesv1(r *gin.Engine) {
 			}
 		}
 	}
+}
+
+func registerUploadRoutes(r *gin.Engine) {
+	// Konfigurasi uploader
+	uploader := goupload.NewImageUploader(goupload.UploadConfig{
+		StoragePath:       "storage/app/public/uploads/images",
+		BaseURL:           config.ENV.BASE_URL,
+		EnableTimestamp:   true,
+		CreateDateDir:     true,
+		AllowedExtensions: []string{"jpg", "jpeg", "png", "webp"},
+		MaxFileSize:       2 << 20, // 2 MB
+	})
+
+	// Daftarkan route ke root (global)
+	uploader.RegisterRoutes(r, "/upload")
+	uploader.ServeStaticFiles(r, "/storage")
 }

@@ -48,14 +48,13 @@ func (r *RegisterRequest) Validate(c *gin.Context) bool {
 
 	// Create validator options
 	opts := govalidator.Options{
-		Request:  c.Request,
+		Data:     r, // pakai data yang sudah di-bind
 		Rules:    rules,
 		Messages: messages,
 	}
 
-	// Validate request
 	v := govalidator.New(opts)
-	e := v.ValidateJSON()
+	e := v.ValidateStruct()
 
 	if len(e) > 0 {
 		// Format error mirip Laravel
@@ -71,13 +70,7 @@ func (r *RegisterRequest) Validate(c *gin.Context) bool {
 		}
 		services.AppLogger.Debug("Validation failed", errorInterface)
 
-		response.UnprocessableEntity(c, "Validation failed", nil, "[RegisterRequest]")
-		return false
-	}
-
-	// Bind validated data to struct
-	if err := c.ShouldBindJSON(r); err != nil {
-		response.BadRequest(c, "Invalid JSON format", err, "[RegisterRequest]")
+		response.UnprocessableValidation(c, "Validation failed", nil, errorInterface, "[RegisterRequest]")
 		return false
 	}
 
@@ -93,7 +86,7 @@ func (r *RegisterRequest) Validate(c *gin.Context) bool {
 		}
 		services.AppLogger.Debug("Validation failed", errorInterface)
 
-		response.UnprocessableEntity(c, "Validation failed", nil, "[RegisterRequest]")
+		response.UnprocessableValidation(c, "Validation failed", nil, errorInterface, "[RegisterRequest]")
 		return false
 	}
 

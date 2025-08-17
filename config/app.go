@@ -26,6 +26,7 @@ type Config struct {
 	Environment    string        `mapstructure:"environment" default:"development"`
 	API_VERSION    []string      `mapstructure:"api_version" default:"v1"`
 	API_BASE_URL   string        `mapstructure:"api_base_url" default:"http://localhost:5220/api/v1"`
+	BASE_URL       string        `mapstructure:"base_url" default:"http://localhost:5220"`
 
 	// Log Channel Configuration
 	LogChannel         string `mapstructure:"log_channel" default:"file"`
@@ -55,6 +56,7 @@ func InitConfig() {
 	viper.BindEnv("environment", "ENVIRONMENT")
 	viper.BindEnv("api_version", "API_VERSION")
 	viper.BindEnv("api_base_url", "API_BASE_URL")
+	viper.BindEnv("base_url", "BASE_URL")
 
 	// Log Channel bindings
 	viper.BindEnv("log_channel", "LOG_CHANNEL")

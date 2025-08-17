@@ -2,9 +2,11 @@
 package auth
 
 import (
+	"fmt"
 	"response-std/app/pkg/response"
 	"response-std/libs/external/services"
 
+	"github.com/davecgh/go-spew/spew"
 	"github.com/gin-gonic/gin"
 	"github.com/thedevsaddam/govalidator"
 )
@@ -36,14 +38,13 @@ func (r *LoginRequest) Validate(c *gin.Context) bool {
 
 	// Create validator options
 	opts := govalidator.Options{
-		Request:  c.Request,
+		Data:     r, // pakai data yang sudah di-bind
 		Rules:    rules,
 		Messages: messages,
 	}
 
-	// Validate request
 	v := govalidator.New(opts)
-	e := v.ValidateJSON()
+	e := v.ValidateStruct()
 
 	if len(e) > 0 {
 		// Format error mirip Laravel
@@ -59,13 +60,9 @@ func (r *LoginRequest) Validate(c *gin.Context) bool {
 		}
 		services.AppLogger.Debug("Validation failed", errorInterface)
 
-		response.UnprocessableEntity(c, "Validation failed", nil, "[LoginRequest]")
-		return false
-	}
-
-	// Bind validated data to struct
-	if err := c.ShouldBindJSON(r); err != nil {
-		response.BadRequest(c, "Invalid JSON format", err, "[LoginRequest]")
+		err := fmt.Errorf("%v", errorInterface)
+		response.UnprocessableValidation(c, "Validation failed", err, errorInterface, "[LoginRequest.Validate]")
+		spew.Dump(errors, "Validation errors", "\n errors from validation", errorInterface)
 		return false
 	}
 

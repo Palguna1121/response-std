@@ -73,28 +73,6 @@ import (
 	// "response-std/app/http/requests"
 )
 
-//delete this section if unused===============================
-// {{.CamelCase}}Request represents the request structure for {{.Name}}
-type {{.CamelCase}}Request struct {
-	// TODO: Define your request fields here
-	// Example:
-	// Name        string ` + "`" + `json:"name" form:"name"` + "`" + `
-	// Email       string ` + "`" + `json:"email" form:"email"` + "`" + `
-	// Phone       string ` + "`" + `json:"phone" form:"phone"` + "`" + `
-	// Description string ` + "`" + `json:"description" form:"description"` + "`" + `
-}
-
-// {{.CamelCase}}UpdateRequest represents the request structure for updating {{.Name}}
-type {{.CamelCase}}UpdateRequest struct {
-	// TODO: Define your update request fields here
-	// Example:
-	// Name        *string ` + "`" + `json:"name,omitempty" form:"name"` + "`" + `
-	// Email       *string ` + "`" + `json:"email,omitempty" form:"email"` + "`" + `
-	// Phone       *string ` + "`" + `json:"phone,omitempty" form:"phone"` + "`" + `
-	// Description *string ` + "`" + `json:"description,omitempty" form:"description"` + "`" + `
-}
-//delete this section if unused================================
-
 
 // {{.CamelCase}}Controller implements the {{.CamelCase}} controller.
 type {{.CamelCase}}Controller struct{}

@@ -66,75 +66,58 @@ var requestTemplate = `package requests
 import (
 	"github.com/gin-gonic/gin"
 	"github.com/thedevsaddam/govalidator"
+	"github.com/davecgh/go-spew/spew"
 	"response-std/app/pkg/response"
 	"response-std/libs/external/services"
 )
 
 // {{.CamelCase}}Request represents the request structure for {{.Name}}.
 type {{.CamelCase}}Request struct {
-	// TODO: Add your request fields here
-	// Example:
-	// Name  string ` + "`json:\"name\"`" + `
-	// Email string ` + "`json:\"email\"`" + `
+	// TODO: Tambahkan field-field request-mu di sini
+	// Contoh:
+	// Name  string  ` + "`json:\"name\"`" + `
+	// Email *string ` + "`json:\"email\"`" + `
 }
 
 // Validate validates the {{.Name}} request using govalidator.
 func (r *{{.CamelCase}}Request) Validate(c *gin.Context) bool {
-	// Define validation rules
 	rules := govalidator.MapData{
-		// TODO: Add your validation rules here
-		// Example:
-		// "name":  []string{"required", "min:2", "max:255"},
-		// "email": []string{"required", "email"},
+		// TODO: Tambahkan aturan validasi
+		// "name": []string{"required", "min:2"},
 	}
 
-	// Custom messages (optional, mirip Laravel)
 	messages := govalidator.MapData{
-		// TODO: Add your custom messages here
-		// Example:
-		// "name": []string{
-		//     "required:Nama wajib diisi",
-		//     "min:Nama minimal 2 karakter",
-		//     "max:Nama maksimal 255 karakter",
-		// },
-		// "email": []string{
-		//     "required:Email wajib diisi",
-		//     "email:Format email tidak valid",
-		// },
+		// TODO: Tambahkan pesan error kustom
+		// "name": {"required:Nama wajib diisi", "min:Minimal 2 karakter"},
 	}
 
-	// Create validator options
 	opts := govalidator.Options{
-		Request:  c.Request,
 		Rules:    rules,
 		Messages: messages,
+		Data:     r, // struct sudah dibind dari controller
 	}
 
-	// Validate request
 	v := govalidator.New(opts)
-	e := v.ValidateJSON()
+	e := v.ValidateStruct()
+
+	// ✅ Validasi tambahan manual jika perlu
+	// contoh: cek urutan tanggal, cek kondisi khusus, dll
 
 	if len(e) > 0 {
-		// Format error mirip Laravel
 		errors := make(map[string][]string)
 		for field, msgs := range e {
 			errors[field] = msgs
 		}
 
-		// Convert errors to map[string]interface{} for logging
 		errorInterface := make(map[string]interface{}, len(errors))
 		for k, v := range errors {
 			errorInterface[k] = v
 		}
+
 		services.AppLogger.Debug("Validation failed", errorInterface)
+		spew.Dump(errors, "Validation errors", "\n errors from validation", errorInterface)
 
-		response.UnprocessableEntity(c, "Validation failed", nil, "[LoginRequest]")
-		return false
-	}
-
-	// Bind validated data to struct
-	if err := c.ShouldBindJSON(r); err != nil {
-		response.BadRequest(c, "Invalid JSON format", err, "[{{.CamelCase}}Request]")
+		response.UnprocessableValidation(c, "Validation failed", nil, errorInterface, "[{{.CamelCase}}Request.Validate]")
 		return false
 	}
 
@@ -144,20 +127,15 @@ func (r *{{.CamelCase}}Request) Validate(c *gin.Context) bool {
 // GetValidatedData returns the validated data as map.
 func (r *{{.CamelCase}}Request) GetValidatedData() map[string]interface{} {
 	return map[string]interface{}{
-		// TODO: Map your validated fields here
-		// Example:
+		// TODO: Petakan field validated-mu
 		// "name":  r.Name,
-		// "email": r.Email,
 	}
 }
 
 // GetRules returns the validation rules (useful for documentation or testing).
 func (r *{{.CamelCase}}Request) GetRules() govalidator.MapData {
 	return govalidator.MapData{
-		// TODO: Return your validation rules here
-		// Example:
-		// "name":  []string{"required", "min:2", "max:255"},
-		// "email": []string{"required", "email"},
+		// TODO: Kembalikan aturan validasi di sini
 	}
 }
 `

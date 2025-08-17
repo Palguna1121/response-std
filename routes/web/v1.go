@@ -2,6 +2,7 @@ package web
 
 import (
 	"response-std/app/http/controllers"
+	"response-std/app/http/middleware"
 	"response-std/app/pkg/permissions"
 	"response-std/config"
 
@@ -24,7 +25,10 @@ func SetupWebRoutes(r *gin.Engine) {
 	api.GET("/error-error", userController.ErrorError)
 	api.GET("/error-critical", userController.ErrorCritical)
 
-	user := api.Group("/users")
+	// Protected routes
+	protected := api.Group("/")
+	protected.Use(middleware.AuthMiddleware(config.DB))
+	user := protected.Group("/users")
 	{
 		user.GET("/", userController.ListUser)
 		user.GET("/:id", userController.GetUserByID)

@@ -104,14 +104,13 @@ func (ctl *UserController) CreateUser(c *gin.Context) {
 		return
 	}
 
-	// Check and assign "pelanggan" role
-	roleName := "pelanggan"
+	roleName := "user"
 	_, err = ctl.Permission.FindRoleByName(roleName)
 	if err != nil {
 		// Role not found, create it
 		_, err = ctl.Permission.CreateRole(roleName, "web")
 		if err != nil {
-			response.InternalServerError(c, "Failed to create role pelanggan", err, "[CreateUser]")
+			response.InternalServerError(c, "Failed to create role for user", err, "[CreateUser]")
 			return
 		}
 	}

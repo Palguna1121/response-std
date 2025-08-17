@@ -6,3 +6,4 @@ go.sum
 *.exe~
 
 /storage/logs/*
+/storage/app/*

@@ -11,6 +11,28 @@ install:
 	@echo "Installing dependencies..."
 	go mod tidy
 
+help:
+	@echo "Available commands:"
+	@echo "  run                               - Run the application"
+	@echo "  build                             - Build the application"
+	@echo "  test                              - Run tests"
+	@echo "  install                           - Install dependencies"
+	@echo "  help                              - Show this help message"
+	@echo "  model name=NAME                   - Generate model for the specified NAME"
+	@echo "  controller name=NAME ver=VERSION  - Generate controller for the specified NAME and VERSION"
+	@echo "  request name=NAME ver=VERSION     - Generate request for the specified NAME and VERSION"
+	@echo "  scaffold name=NAME ver=VERSION    - Generate model, controller, and requests for the specified NAME and VERSION"
+	@echo "  scaffolds name=NAME ver=VERSION   - Create migration, generate model, controller, and requests for the specified NAME and VERSION"
+	@echo "  create migration=MIGRATION_NAME   - Create a new migration file with the specified MIGRATION_NAME"
+	@echo "  migrate-up                        - Run database migrations up"
+	@echo "  migrate-down                      - Run database migrations down"
+	@echo "  migrate-drop                      - Drop the database"
+	@echo "  migrate-force                     - Force database migration to a specific version"
+	@echo "  db-seed                           - Seed the database with initial data"
+	@echo "  seeder name=NAME                  - Generate a seeder for the specified NAME"
+	@echo "  fresh-seed                        - Fresh migrate and seed the database"
+	@echo "  migrate-up-seed                   - Migrate up and seed the database"
+
 # ================================================================================
 # ================================================================================
 # ================================================================================
